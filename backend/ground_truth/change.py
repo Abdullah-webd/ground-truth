@@ -87,15 +87,25 @@ def _cache_path(bbox, year_a, year_b):
     return CACHE / "change" / (hashlib.sha1(key.encode()).hexdigest()[:16] + ".json")
 
 
+_TILE_TTL_SECONDS = 1800
+_tile_cache: dict[tuple, tuple[float, str]] = {}
+
+
 def tile_url(bbox, year_a: int, year_b: int) -> str:
-    """Fresh Earth Engine tile URL for the change layer (URLs expire, so never cached)."""
+    """Earth Engine tile URL for the change layer. Map URLs expire, so they are cached for 30 minutes only."""
     import ee
 
+    key = (tuple(round(v, 4) for v in bbox), year_a, year_b)
+    hit = _tile_cache.get(key)
+    if hit and time.time() - hit[0] < _TILE_TTL_SECONDS:
+        return hit[1]
     init_earth_engine()
     region = ee.Geometry.Rectangle(list(bbox))
     change = _change_image(region, year_a, year_b)
     m = change.updateMask(change.gt(VIS["min"])).getMapId(VIS)
-    return m["tile_fetcher"].url_format
+    url = m["tile_fetcher"].url_format
+    _tile_cache[key] = (time.time(), url)
+    return url
 
 
 def detect_change(bbox, year_a: int, year_b: int) -> dict:

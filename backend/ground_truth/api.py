@@ -14,7 +14,7 @@ from fastapi.responses import JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import agent, checks, store
+from . import agent, checks, store, voice
 from .change import ChangeError, detect_change
 from .config import DERIVED, FIRMS_MAP_KEY, OPENAI_API_KEY
 from .fires import fires
@@ -162,3 +162,37 @@ def agent_turn(turn: Turn):
 
     return StreamingResponse(events(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@app.post("/api/voice/session")
+def voice_session():
+    """Mint a short-lived Realtime client secret (the browser never sees the real API key)."""
+    try:
+        return voice.mint_client_secret()
+    except voice.VoiceUnavailable as exc:
+        raise _error(503, "voice_unavailable", str(exc)) from exc
+    except Exception as exc:
+        log.exception("voice session failed")
+        raise _error(502, "voice_failed", f"Could not start a voice session: {str(exc)[:200]}") from exc
+
+
+class VoiceTool(BaseModel):
+    name: str = Field(min_length=1, max_length=64)
+    arguments: dict
+
+
+@app.post("/api/voice/tool")
+def voice_tool(call: VoiceTool):
+    if call.name not in {t["name"] for t in agent.TOOLS}:
+        raise _error(400, "unknown_tool", f"unknown tool '{call.name}'")
+    return voice.run_voice_tool(call.name, call.arguments)
+
+
+class VoiceCheck(BaseModel):
+    text: str = Field(max_length=8000)
+    results: list
+
+
+@app.post("/api/voice/check")
+def voice_check(body: VoiceCheck):
+    return {"unverified_numbers": voice.check_numbers(body.text, body.results)}

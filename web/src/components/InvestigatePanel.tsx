@@ -106,6 +106,7 @@ export function InvestigatePanel() {
     <aside
       data-reveal
       data-intro="left"
+      data-section
       aria-label="Investigate"
       className="scroll-thin pointer-events-auto absolute left-4 top-[68px] z-20 flex max-h-[calc(100%-84px)] w-[360px] flex-col gap-4 overflow-y-auto rounded-xl border border-line bg-panel p-4"
     >

@@ -16,6 +16,7 @@ export function TopBar() {
     <header
       data-reveal
       data-intro="top"
+      data-section
       className="pointer-events-auto absolute inset-x-0 top-0 z-20 flex items-center gap-6 border-b border-line bg-ground/95 px-5 py-2.5"
     >
       <div className="flex items-baseline gap-3">

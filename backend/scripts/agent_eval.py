@@ -25,11 +25,13 @@ CASES = [
     {"q": "Is the Arctic warming faster than the rest of the world?", "tools_any": ["trend_in_region"], "variable": "temperature"},
     {"q": "Show me the vegetation map for 2010.", "tools": ["set_view"]},
     {"q": "Are there active fires in California right now?", "tools": ["live_events"]},
-    {"q": "Is Greenland losing ice?", "tools_any": ["trend_in_region", "trend_at_point"], "variable": "water"},
+    {"q": "Is Greenland losing ice?", "tools": ["trend_in_region"], "variable": "water", "says": "decrease|losing|loss|declin"},
     {"q": "What changed in Dubai between 2017 and 2025?", "tools": ["locate_place", "detect_change"], "years": [2017, 2025]},
     {"q": "What is the vegetation trend in the middle of the Pacific Ocean, at 0 N 150 W?", "tools": ["trend_at_point"]},
     {"q": "Is Cairo getting wetter or drier?", "tools_any": ["trend_at_point", "trend_in_region"], "variable": "rainfall"},
     {"q": "Has the land around Phoenix changed since 2018?", "tools": ["locate_place", "detect_change"]},
+    {"q": "Is the Sahel getting more rain than before?", "tools": ["trend_in_region"], "variable": "rainfall"},
+    {"q": "Is China greening?", "tools": ["trend_in_region"], "variable": "vegetation", "says": "green|increase"},
 ]
 
 SIGNIFICANT_CLAIM = re.compile(r"(?<!not )(?<!isn't )statistically significant", re.IGNORECASE)
@@ -58,6 +60,8 @@ def run_case(case: dict) -> dict:
     if "years" in case:
         checks["right_years"] = any(t["name"] == "detect_change" and [t["args"].get("year_a"), t["args"].get("year_b")] == case["years"]
                                     for t in tools)
+    if "says" in case:
+        checks["right_conclusion"] = bool(re.search(case["says"], answer, re.IGNORECASE))
     checks["numbers_from_tools"] = bool(done) and not done["unverified_numbers"]
     any_significant = any(isinstance(t.get("result"), dict) and t["result"].get("significant") is True for t in tools)
     checks["significance_honest"] = any_significant or not SIGNIFICANT_CLAIM.search(answer)

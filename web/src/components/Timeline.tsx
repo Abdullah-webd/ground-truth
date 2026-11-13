@@ -20,6 +20,7 @@ export function Timeline() {
     <div
       data-reveal
       data-intro="bottom"
+      data-section
       className="pointer-events-auto absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-end gap-6 rounded-xl border border-line bg-panel px-5 py-3.5"
     >
       <div className="flex flex-col gap-2">

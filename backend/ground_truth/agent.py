@@ -45,6 +45,7 @@ How you work:
 - For "opposite trends" or "divergence": find_divergence.
 - For "right now", "this month" or "recent": now_vs_normal or live_events. Say clearly that recent conditions are an anomaly, not a trend.
 - Use locate_place before any tool that needs coordinates for a named place.
+- Match the tool to the size of the place. For a country, region, ice sheet, desert, basin or continent (for example Greenland, northern India, the Sahel, the Amazon, the Arctic), use trend_in_region with the place's bounding box; a single point at its centre can show the opposite of the regional trend. Use trend_at_point only for a city, a site, or a point the user clicked.
 
 How you write:
 - Plain English, short: at most 120 words unless asked for more. Lead with the finding.
@@ -219,8 +220,9 @@ def _collect_numbers(obj, out: set[float]) -> None:
 NUMBER_IN_TEXT = re.compile(r"(?<![\w.])[-−+]?\d+(?:[.,]\d+)*(?:\.\d+)?")
 
 
-def _close(v: float, k: float) -> bool:
-    return abs(abs(v) - abs(k)) <= max(0.02 * abs(k), 0.0051)
+def _close(v: float, k: float, rounding: float = 0.0051) -> bool:
+    """v matches k within 2 %, or is k correctly rounded to the precision v was written with."""
+    return abs(abs(v) - abs(k)) <= max(0.02 * abs(k), rounding)
 
 
 def unverified_numbers(text: str, known: set[float]) -> list[str]:
@@ -240,8 +242,11 @@ def unverified_numbers(text: str, known: set[float]) -> list[str]:
             continue
         if 1900 <= abs(v) <= 2100 or abs(v) <= 10 and v == int(v):
             continue
-        direct = any(_close(v, k) or _close(v, k * 100) or _close(v, k / 1e3) or _close(v, k / 1e6) for k in ks)
-        ratio = not direct and any(_close(v, a / b) for a in ks for b in ks if a is not b and abs(b) > 1e-9)
+        decimals = len(raw.split(".")[1]) if "." in raw else 0
+        r = 0.5 * 10 ** -decimals + 1e-9  # half a unit in the last written digit
+        direct = any(_close(v, k, r) or _close(v, k * 100, r) or _close(v, k / 1e3, r) or _close(v, k / 1e6, r)
+                     for k in ks)
+        ratio = not direct and any(_close(v, a / b, r) for a in ks for b in ks if a is not b and abs(b) > 1e-9)
         if not (direct or ratio):
             flagged.append(tok)
     return flagged

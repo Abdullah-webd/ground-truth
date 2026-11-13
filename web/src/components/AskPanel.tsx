@@ -1,7 +1,8 @@
 import { AnimatePresence, motion } from "motion/react";
 import { Fragment, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { askAgent, type AgentEvent } from "../lib/agent";
-import { applyCommand, newTurnContext } from "../lib/applyCommand";
+import { applyCommand, newTurnContext, type TurnContext } from "../lib/applyCommand";
+import { VoiceSession, type VoiceState } from "../lib/voice";
 
 interface Step {
   id: string;
@@ -17,7 +18,16 @@ interface Turn {
   error?: string;
   done: boolean;
   unverified?: string[];
+  voice?: boolean;
 }
+
+const VOICE_LABEL: Record<VoiceState, string> = {
+  connecting: "Connecting…",
+  listening: "Listening",
+  thinking: "Working on it",
+  speaking: "Speaking",
+  closed: "Talk",
+};
 
 const SUGGESTIONS = [
   "What changed around Lagos since 2018, and is it significant?",
@@ -54,7 +64,17 @@ export function AskPanel() {
   const abort = useRef<AbortController | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => () => abort.current?.abort(), []);
+  const [voiceState, setVoiceState] = useState<VoiceState>("closed");
+  const voice = useRef<VoiceSession | null>(null);
+  const voiceTurn = useRef<{ id: number; ctx: TurnContext } | null>(null);
+
+  useEffect(
+    () => () => {
+      abort.current?.abort();
+      voice.current?.stop();
+    },
+    [],
+  );
   useEffect(() => {
     // Braces matter: newer browsers return a Promise from scrollIntoView, which React must not receive.
     endRef.current?.scrollIntoView({ block: "nearest" });
@@ -104,6 +124,61 @@ export function AskPanel() {
     }
   }
 
+  function currentVoiceTurn() {
+    if (!voiceTurn.current) {
+      const id = Date.now();
+      voiceTurn.current = { id, ctx: newTurnContext() };
+      setTurns((ts) => [...ts, { id, question: "…", steps: [], answer: "", done: false, voice: true }]);
+    }
+    return voiceTurn.current;
+  }
+
+  function toggleVoice() {
+    if (voice.current) {
+      voice.current.stop();
+      voice.current = null;
+      voiceTurn.current = null;
+      return;
+    }
+    const session = new VoiceSession({
+      onState: (st) => {
+        setVoiceState(st);
+        if (st === "closed") voice.current = null;
+      },
+      onUserSpeechStart: () => {
+        voiceTurn.current = null; // a new spoken question starts a new turn
+        currentVoiceTurn();
+      },
+      onUserText: (q) => {
+        const t = currentVoiceTurn();
+        update(t.id, (x) => ({ ...x, question: q || "(couldn't make that out)" }));
+      },
+      onToolStart: (id, label) => {
+        const t = currentVoiceTurn();
+        update(t.id, (x) => ({ ...x, steps: [...x.steps, { id, text: label, state: "running" }] }));
+      },
+      onToolDone: (id, ok, error) => {
+        const t = currentVoiceTurn();
+        update(t.id, (x) => ({ ...x, steps: x.steps.map((st) => (st.id === id ? { ...st, state: ok ? "ok" : "error", error } : st)) }));
+      },
+      onUi: (cmd) => applyCommand(cmd, currentVoiceTurn().ctx),
+      onAssistantDelta: (d) => {
+        const t = currentVoiceTurn();
+        update(t.id, (x) => ({ ...x, answer: x.answer + d }));
+      },
+      onAnswerDone: (unverified) => {
+        const t = voiceTurn.current;
+        if (t) update(t.id, (x) => ({ ...x, done: true, unverified }));
+      },
+      onError: (message) => {
+        const t = currentVoiceTurn();
+        update(t.id, (x) => ({ ...x, error: message, done: true }));
+      },
+    });
+    voice.current = session;
+    void session.start();
+  }
+
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
     void send(text);
@@ -130,7 +205,30 @@ export function AskPanel() {
           className="resize-none rounded-md border border-line bg-ground px-3 py-2 text-sm text-ink placeholder:text-faint focus:border-accent focus:outline-none"
         />
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[11px] text-faint">Answers use only numbers from the data tools.</span>
+          <button
+            type="button"
+            onClick={toggleVoice}
+            aria-pressed={voiceState !== "closed"}
+            title="Talk to the analyst (OpenAI gpt-realtime-2.1). Press again to hang up."
+            className={`btn flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm ${
+              voiceState === "closed" ? "btn-quiet border-line text-ink" : "border-accent text-accent"
+            }`}
+          >
+            <span className="relative grid h-3.5 w-3.5 place-items-center" aria-hidden>
+              {voiceState !== "closed" && voiceState !== "connecting" && (
+                <motion.span
+                  className="absolute inset-0 rounded-full bg-accent/40"
+                  animate={{ scale: voiceState === "speaking" ? [1, 1.7, 1] : [1, 1.35, 1] }}
+                  transition={{ duration: voiceState === "speaking" ? 0.9 : 1.6, repeat: Infinity, ease: "easeInOut" }}
+                />
+              )}
+              <svg viewBox="0 0 14 14" className="relative h-3.5 w-3.5">
+                <rect x="4.5" y="1" width="5" height="8" rx="2.5" fill="currentColor" />
+                <path d="M2.5 6.5a4.5 4.5 0 0 0 9 0M7 11v2" fill="none" stroke="currentColor" strokeWidth="1.3" />
+              </svg>
+            </span>
+            {voiceState === "closed" ? "Talk" : VOICE_LABEL[voiceState]}
+          </button>
           <button type="submit" disabled={busy || !text.trim()} className="btn btn-accent rounded-md bg-accent px-3 py-1.5 text-sm font-semibold text-accent-ink disabled:opacity-50">
             {busy ? "Investigating…" : "Ask"}
           </button>
@@ -152,7 +250,10 @@ export function AskPanel() {
       <div className="flex flex-col gap-4" aria-live="polite">
         {turns.map((t) => (
           <article key={t.id} className="flex flex-col gap-2">
-            <p className="self-end rounded-lg bg-panel-2 px-3 py-2 text-sm text-ink">{t.question}</p>
+            <p className="self-end rounded-lg bg-panel-2 px-3 py-2 text-sm text-ink">
+              {t.voice && <span className="mr-1.5 text-[11px] uppercase tracking-wide text-muted">Said</span>}
+              {t.question}
+            </p>
             <ol className="flex flex-col gap-1">
               <AnimatePresence initial={false}>
                 {t.steps.map((s) => (

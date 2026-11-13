@@ -9,6 +9,11 @@ def test_numbers_from_tools_pass():
     assert unverified_numbers(text, known) == []
 
 
+def test_correct_rounding_is_accepted():
+    assert unverified_numbers("0.6% browned", {0.0057}) == []
+    assert unverified_numbers("0.4% browned", {0.0057}) == ["0.4"]
+
+
 def test_invented_numbers_are_flagged():
     assert unverified_numbers("It warmed 0.41 °C per decade", {0.655, 0.21}) == ["0.41"]
     assert unverified_numbers("Loss of 37.5 mm per decade", {760.0, 267.0}) == ["37.5"]
