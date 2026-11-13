@@ -64,7 +64,7 @@ def available() -> list[dict]:
             continue
         out.append({k: m[k] for k in ("id", "label", "units", "long_name", "source", "citation", "url", "years",
                                        "increase_means", "decrease_means", "land_only", "legend", "palette",
-                                       "summary", "years_missing", "method")})
+                                       "summary", "years_missing", "method", "built")})
     return out
 
 
@@ -183,7 +183,14 @@ def divergence(var_id: str, bbox: tuple[float, float, float, float] | None = Non
             "period": list(s.period), "pairs": out}
 
 
-def cluster_png(var_id: str, cluster_id: str) -> bytes:
+def _rgb(hex_color: str) -> tuple[int, int, int]:
+    h = hex_color.lstrip("#")
+    if len(h) != 6 or any(ch not in "0123456789abcdefABCDEF" for ch in h):
+        raise OutOfRange("color must be a 6-digit hex value")
+    return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+
+
+def cluster_png(var_id: str, cluster_id: str, color: str | None = None) -> bytes:
     """Transparent full-globe PNG highlighting one divergence cluster."""
     s = load(var_id)
     sign, _, num = cluster_id.partition("-")
@@ -194,7 +201,9 @@ def cluster_png(var_id: str, cluster_id: str) -> bytes:
     if not mask.any():
         raise NotFound(f"unknown cluster '{cluster_id}'")
     rgba = np.zeros(mask.shape + (4,), dtype=np.uint8)
-    rgba[mask] = (255, 214, 102, 230) if sign == "up" else (102, 204, 255, 230)
+    palette = s.meta["palette"]
+    rgb = _rgb(color) if color else _rgb(palette[-1] if sign == "up" else palette[0])
+    rgba[mask] = (*rgb, 235)
     img = Image.fromarray(rgba, "RGBA").resize((mask.shape[1] * 4, mask.shape[0] * 4), Image.Resampling.NEAREST)
     buf = io.BytesIO()
     img.save(buf, format="PNG", optimize=True)

@@ -1,0 +1,385 @@
+import {
+  ArcType,
+  Cartesian2,
+  Cartesian3,
+  Cartographic,
+  Color,
+  ColorMaterialProperty,
+  ConstantProperty,
+  Credit,
+  EasingFunction,
+  GeoJsonDataSource,
+  HeightReference,
+  ImageryLayer,
+  Ion,
+  Math as CMath,
+  PolylineDashMaterialProperty,
+  PointPrimitiveCollection,
+  Rectangle,
+  ScreenSpaceEventHandler,
+  ScreenSpaceEventType,
+  SingleTileImageryProvider,
+  TextureMagnificationFilter,
+  TextureMinificationFilter,
+  UrlTemplateImageryProvider,
+  Viewer,
+  WebMercatorTilingScheme,
+  type Entity,
+} from "cesium";
+import gsap from "gsap";
+import type { BBox, Fire, Hotspot } from "../lib/types";
+
+Ion.defaultAccessToken = ""; // no Cesium ion: all imagery is NASA GIBS or our own
+
+const GIBS = "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best";
+const gibsCredit = new Credit("Imagery: NASA GIBS / EOSDIS", false);
+const ACCENT = Color.fromCssColorString("#f2c14e");
+const WORLD = Rectangle.fromDegrees(-180, -90, 180, 90);
+const OVERLAY_ALPHA = 0.82;
+const OVERLAY_FADE_LOW = 300_000; // m: overlay nearly gone below this camera height
+const OVERLAY_FADE_HIGH = 1_500_000; // m: overlay fully shown above this
+const reduceMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function gibs(layer: string, time: string, matrix: string, ext: string, maximumLevel: number) {
+  return new UrlTemplateImageryProvider({
+    url: `${GIBS}/${layer}/default/${time}/${matrix}/{z}/{y}/{x}.${ext}`,
+    tilingScheme: new WebMercatorTilingScheme(),
+    maximumLevel,
+    credit: gibsCredit,
+  });
+}
+
+export type PickHandler = (pick: { lat: number; lon: number; entityId?: string }) => void;
+
+export class GlobeController {
+  readonly viewer: Viewer;
+  private night: ImageryLayer;
+  private day: ImageryLayer;
+  private satellite: ImageryLayer;
+  private reference: ImageryLayer[] = [];
+  private overlay: { layer: ImageryLayer; fade: { v: number } } | null = null;
+  private overlays = new Set<{ layer: ImageryLayer; fade: { v: number } }>();
+  private overlayToken = 0;
+  private changeLayer: ImageryLayer | null = null;
+  private clusterLayers: ImageryLayer[] = [];
+  private hotspots: GeoJsonDataSource | null = null;
+  private fires: PointPrimitiveCollection;
+  private marker: Entity | null = null;
+  private arc: Entity | null = null;
+  private pickHandlers = new Set<PickHandler>();
+
+  constructor(container: HTMLElement) {
+    this.viewer = new Viewer(container, {
+      baseLayer: false,
+      animation: false,
+      timeline: false,
+      baseLayerPicker: false,
+      geocoder: false,
+      homeButton: false,
+      sceneModePicker: false,
+      navigationHelpButton: false,
+      fullscreenButton: false,
+      infoBox: false,
+      selectionIndicator: false,
+      creditContainer: undefined,
+      contextOptions: { webgl: { preserveDrawingBuffer: true, alpha: false } },
+    });
+    const { scene } = this.viewer;
+    scene.backgroundColor = Color.fromCssColorString("#05080d");
+    if (scene.skyBox) scene.skyBox.show = false;
+    if (scene.sun) scene.sun.show = false;
+    if (scene.moon) scene.moon.show = false;
+    scene.globe.baseColor = Color.fromCssColorString("#0a0f16");
+    scene.globe.showGroundAtmosphere = true;
+    scene.globe.enableLighting = false;
+    scene.fog.enabled = false;
+    scene.screenSpaceCameraController.minimumZoomDistance = 1500;
+    scene.screenSpaceCameraController.maximumZoomDistance = 4.5e7;
+
+    const layers = this.viewer.imageryLayers;
+    this.night = layers.addImageryProvider(gibs("VIIRS_Black_Marble", "2016-01-01", "GoogleMapsCompatible_Level8", "png", 8));
+    this.day = layers.addImageryProvider(
+      gibs("BlueMarble_ShadedRelief_Bathymetry", "2004-08-01", "GoogleMapsCompatible_Level8", "jpeg", 8),
+    );
+    this.day.show = false;
+    this.night.brightness = 1.15;
+    this.satellite = layers.addImageryProvider(
+      new UrlTemplateImageryProvider({
+        url: "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2023_3857/default/g/{z}/{y}/{x}.jpg",
+        tilingScheme: new WebMercatorTilingScheme(),
+        maximumLevel: 15,
+        credit: new Credit("Sentinel-2 cloudless 2023 by EOX IT Services GmbH (contains modified Copernicus Sentinel data 2023), CC BY-NC-SA 4.0", false),
+      }),
+    );
+    this.satellite.show = false;
+
+    const coast = layers.addImageryProvider(gibs("Coastlines_15m", "2020-01-01", "GoogleMapsCompatible_Level13", "png", 9));
+    coast.alpha = 0.35;
+    const labels = layers.addImageryProvider(
+      gibs("Reference_Labels_15m", "2020-01-01", "GoogleMapsCompatible_Level13", "png", 13),
+    );
+    labels.alpha = 0.85;
+    this.reference = [coast, labels];
+
+    this.fires = scene.primitives.add(new PointPrimitiveCollection());
+
+    const handler = new ScreenSpaceEventHandler(scene.canvas);
+    handler.setInputAction((e: { position: Cartesian2 }) => this.handleClick(e.position), ScreenSpaceEventType.LEFT_CLICK);
+
+    this.viewer.camera.setView({ destination: Cartesian3.fromDegrees(8, 14, 6.0e7) });
+
+    // Variable overlays are 0.5–2° grids: meaningful from orbit, misleading at street level.
+    // Fade them out as the camera descends below ~1,500 km.
+    scene.preRender.addEventListener(() => {
+      const h = this.viewer.camera.positionCartographic.height;
+      const altitude = Math.min(1, Math.max(0, (h - OVERLAY_FADE_LOW) / (OVERLAY_FADE_HIGH - OVERLAY_FADE_LOW)));
+      for (const o of this.overlays) o.layer.alpha = o.fade.v * OVERLAY_ALPHA * (0.08 + 0.92 * altitude);
+    });
+  }
+
+  /** Opening shot: Earth swings in from deep space. */
+  intro() {
+    this.viewer.camera.flyTo({
+      destination: Cartesian3.fromDegrees(10, 12, 2.15e7),
+      duration: reduceMotion() ? 0 : 1.8,
+      easingFunction: EasingFunction.QUINTIC_OUT,
+    });
+  }
+
+  onPick(fn: PickHandler) {
+    this.pickHandlers.add(fn);
+    return () => this.pickHandlers.delete(fn);
+  }
+
+  private handleClick(position: Cartesian2) {
+    const { scene, camera } = this.viewer;
+    const picked = scene.pick(position);
+    const entityId: string | undefined = picked?.id?.id && typeof picked.id.id === "string" ? picked.id.id : undefined;
+    const ray = camera.getPickRay(position);
+    const cartesian = ray ? scene.globe.pick(ray, scene) : undefined;
+    if (!cartesian) return;
+    const c = Cartographic.fromCartesian(cartesian);
+    const pick = { lat: CMath.toDegrees(c.latitude), lon: CMath.toDegrees(c.longitude), entityId };
+    this.pickHandlers.forEach((fn) => fn(pick));
+  }
+
+  setBase(base: "night" | "day" | "satellite") {
+    this.night.show = base === "night";
+    this.day.show = base === "day";
+    this.satellite.show = base === "satellite";
+  }
+
+  /** Swap the data overlay with a crossfade. Later calls win over slower earlier loads. */
+  async setOverlay(url: string | null) {
+    const token = ++this.overlayToken;
+    const layers = this.viewer.imageryLayers;
+    const previous = this.overlay;
+    const retire = (o: NonNullable<typeof previous>, duration: number) =>
+      gsap.to(o.fade, {
+        v: 0,
+        duration: reduceMotion() ? 0 : duration,
+        ease: "power1.in",
+        onComplete: () => {
+          this.overlays.delete(o);
+          if (layers.contains(o.layer)) layers.remove(o.layer, true);
+        },
+      });
+    if (!url) {
+      this.overlay = null;
+      if (previous) retire(previous, 0.3);
+      return;
+    }
+    const provider = await SingleTileImageryProvider.fromUrl(url, { rectangle: WORLD });
+    if (token !== this.overlayToken) return;
+    const layer = new ImageryLayer(provider, { alpha: 0 });
+    layer.magnificationFilter = TextureMagnificationFilter.NEAREST;
+    layer.minificationFilter = TextureMinificationFilter.NEAREST;
+    layers.add(layer, layers.indexOf(this.satellite) + 1);
+    const entry = { layer, fade: { v: 0 } };
+    this.overlays.add(entry);
+    this.overlay = entry;
+    gsap.to(entry.fade, { v: 1, duration: reduceMotion() ? 0 : 0.45, ease: "power2.out" });
+    if (previous) retire(previous, 0.45);
+  }
+
+  private fadeOut(layer: ImageryLayer, duration = 0.3) {
+    gsap.to(layer, {
+      alpha: 0,
+      duration: reduceMotion() ? 0 : duration,
+      ease: "power1.in",
+      onComplete: () => {
+        if (this.viewer.imageryLayers.contains(layer)) this.viewer.imageryLayers.remove(layer, true);
+      },
+    });
+  }
+
+  flyToPoint(lat: number, lon: number, height = 2.6e6, duration = 2.2) {
+    return new Promise<void>((resolve) =>
+      this.viewer.camera.flyTo({
+        destination: Cartesian3.fromDegrees(lon, lat, height),
+        duration: reduceMotion() ? 0 : duration,
+        easingFunction: EasingFunction.QUINTIC_IN_OUT,
+        complete: resolve,
+        cancel: resolve,
+      }),
+    );
+  }
+
+  flyToBox(b: BBox, duration = 2.2) {
+    const pad = Math.max(b[2] - b[0], b[3] - b[1]) * 0.25;
+    return new Promise<void>((resolve) =>
+      this.viewer.camera.flyTo({
+        destination: Rectangle.fromDegrees(
+          Math.max(-180, b[0] - pad),
+          Math.max(-90, b[1] - pad),
+          Math.min(180, b[2] + pad),
+          Math.min(90, b[3] + pad),
+        ),
+        duration: reduceMotion() ? 0 : duration,
+        easingFunction: EasingFunction.QUINTIC_IN_OUT,
+        complete: resolve,
+        cancel: resolve,
+      }),
+    );
+  }
+
+  setMarker(lat: number | null, lon?: number) {
+    if (this.marker) {
+      this.viewer.entities.remove(this.marker);
+      this.marker = null;
+    }
+    if (lat == null || lon == null) return;
+    this.marker = this.viewer.entities.add({
+      id: "selection-marker",
+      position: Cartesian3.fromDegrees(lon, lat),
+      point: {
+        pixelSize: 11,
+        color: ACCENT,
+        outlineColor: Color.fromCssColorString("#0a0f16"),
+        outlineWidth: 3,
+        heightReference: HeightReference.CLAMP_TO_GROUND,
+        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+      },
+    });
+  }
+
+  /** Earth Engine change tiles. Replaces any previous change layer. */
+  setChangeTiles(url: string | null) {
+    if (this.changeLayer) {
+      this.fadeOut(this.changeLayer);
+      this.changeLayer = null;
+    }
+    if (!url) return;
+    const provider = new UrlTemplateImageryProvider({
+      url,
+      tilingScheme: new WebMercatorTilingScheme(),
+      maximumLevel: 17,
+      credit: new Credit("Change: AlphaEarth embeddings (Google DeepMind) via Earth Engine", false),
+    });
+    const layer = this.viewer.imageryLayers.addImageryProvider(provider, this.viewer.imageryLayers.indexOf(this.reference[0]));
+    layer.alpha = 0;
+    gsap.to(layer, { alpha: 0.9, duration: reduceMotion() ? 0 : 0.6, ease: "power2.out" });
+    this.changeLayer = layer;
+  }
+
+  async setHotspots(hotspots: Hotspot[] | null, selectedId?: string) {
+    if (this.hotspots) {
+      await this.viewer.dataSources.remove(this.hotspots, true);
+      this.hotspots = null;
+    }
+    if (!hotspots?.length) return;
+    const collection = {
+      type: "FeatureCollection",
+      features: hotspots.map((h) => ({ type: "Feature", id: `hotspot:${h.id}`, properties: { id: h.id }, geometry: h.geometry })),
+    };
+    const ds = await GeoJsonDataSource.load(collection, {
+      stroke: ACCENT,
+      fill: ACCENT.withAlpha(0.12),
+      strokeWidth: 2,
+      clampToGround: false,
+    });
+    for (const entity of ds.entities.values) {
+      const hid = entity.properties?.id?.getValue() as string | undefined;
+      const selected = hid === selectedId;
+      if (entity.polygon) {
+        entity.polygon.material = new ColorMaterialProperty(ACCENT.withAlpha(selected ? 0.45 : 0.16));
+        entity.polygon.outlineColor = new ConstantProperty(ACCENT);
+      }
+    }
+    // Entities are pickable by id; tag them so clicks resolve to the hotspot.
+    ds.entities.values.forEach((e) => {
+      const hid = e.properties?.id?.getValue() as string | undefined;
+      if (hid) e.name = `hotspot:${hid}`;
+    });
+    await this.viewer.dataSources.add(ds);
+    this.hotspots = ds;
+  }
+
+  hotspotIdFromEntity(entityId?: string) {
+    if (!entityId || !this.hotspots) return undefined;
+    const e = this.hotspots.entities.getById(entityId);
+    return (e?.properties?.id?.getValue() as string | undefined) ?? undefined;
+  }
+
+  async setClusters(urls: string[], arc?: { from: [number, number]; to: [number, number] }) {
+    for (const l of this.clusterLayers) this.fadeOut(l);
+    this.clusterLayers = [];
+    if (this.arc) {
+      this.viewer.entities.remove(this.arc);
+      this.arc = null;
+    }
+    for (const url of urls) {
+      const provider = await SingleTileImageryProvider.fromUrl(url, { rectangle: WORLD });
+      const layer = new ImageryLayer(provider, { alpha: 0 });
+      layer.magnificationFilter = TextureMagnificationFilter.NEAREST;
+      this.viewer.imageryLayers.add(layer, this.viewer.imageryLayers.indexOf(this.reference[0]));
+      gsap.to(layer, { alpha: 0.95, duration: reduceMotion() ? 0 : 0.5 });
+      this.clusterLayers.push(layer);
+    }
+    if (arc) {
+      this.arc = this.viewer.entities.add({
+        id: "divergence-arc",
+        polyline: {
+          positions: Cartesian3.fromDegreesArrayHeights([arc.from[1], arc.from[0], 2e5, arc.to[1], arc.to[0], 2e5]),
+          width: 2,
+          arcType: ArcType.GEODESIC,
+          material: new PolylineDashMaterialProperty({ color: ACCENT, dashLength: 18 }),
+        },
+      });
+    }
+  }
+
+  setFires(fires: Fire[] | null) {
+    this.fires.removeAll();
+    if (!fires) return;
+    const hot = Color.fromCssColorString("#ff8c3a");
+    const warm = Color.fromCssColorString("#ffb347");
+    for (const f of fires) {
+      this.fires.add({
+        position: Cartesian3.fromDegrees(f.lon, f.lat),
+        pixelSize: f.frp > 50 ? 5 : 3,
+        color: (f.frp > 50 ? hot : warm).withAlpha(0.9),
+      });
+    }
+  }
+
+  snapshot(): string {
+    this.viewer.render();
+    return this.viewer.scene.canvas.toDataURL("image/png");
+  }
+
+  destroy() {
+    this.pickHandlers.clear();
+    if (!this.viewer.isDestroyed()) this.viewer.destroy();
+  }
+}
+
+let current: GlobeController | null = null;
+export const globe = {
+  set(c: GlobeController | null) {
+    current = c;
+  },
+  get() {
+    return current;
+  },
+};

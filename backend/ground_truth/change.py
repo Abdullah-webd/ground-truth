@@ -25,7 +25,7 @@ CHANGE_THRESHOLD = 0.3
 HOTSPOT_SCALE_M = 60
 MIN_HOTSPOT_KM2 = 0.05
 MAX_HOTSPOTS = 20
-VIS = {"min": 0.05, "max": 0.5, "palette": ["000000", "3b0f4f", "b5367a", "fb8761", "fcfdbf"]}
+VIS = {"min": 0.15, "max": 0.55, "palette": ["4a1a6b", "b5367a", "fb8761", "fcfdbf"]}  # shown only above 0.15
 DW_CLASSES = ["water", "trees", "grass", "flooded vegetation", "crops", "shrub and scrub", "built-up",
               "bare ground", "snow and ice"]
 CACHE_VERSION = 1

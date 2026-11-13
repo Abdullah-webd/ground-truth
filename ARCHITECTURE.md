@@ -241,7 +241,7 @@ Rate limits: the agent endpoint allows one concurrent turn per session; geocodin
 
 ## 14. Deployment & environments
 
-Local only. `make setup` (Python venv + npm install), `make pipeline` (builds the trend store, ~20–40 min once), `make dev` (backend on :8000, web on :5173), `make test`, `make warm`. Environment variables: see `.env.example`. Cost: Earth Engine noncommercial (free), NASA services free, OpenAI API cost per question measured during evals and reported (measured during evals and reported).
+Local only. Backend on 127.0.0.1:8765, web app on :5179 (8000 and 5173 are used by other projects on this machine). `make setup` (Python venv + npm install), `make pipeline` (builds the trend store, ~20–40 min once), `make dev` (backend on :8000, web on :5173), `make test`, `make warm`. Environment variables: see `.env.example`. Cost: Earth Engine noncommercial (free), NASA services free, OpenAI API cost per question measured during evals and reported (measured during evals and reported).
 
 ## 15. Milestones
 
@@ -252,8 +252,8 @@ Ordered so the demo works as early as possible. The line marks what must exist b
 | M1 | Statistics core | ✅ Done 2026-11-13: false alarms 3.2–7.9 %, power 63–100 % (docs/methods.md) |
 | M2 | Pipeline: 4 variables | ✅ Done 2026-11-13: 4 stores built; GISTEMP check +0.210 vs +0.207 °C/decade; 5/5 regional checks pass |
 | M3 | Backend API | ✅ Done 2026-11-13: all endpoints with offline + live tests (agent endpoint comes with M6) |
-| M4 | Globe app | Dark console UI, layers, significance maps, click-anywhere Case File, time-lapse |
-| M5 | Change discovery | Hotspots with from → to labels on the globe for any region |
+| M4 | Globe app | ✅ Done 2026-11-13: globe, 3 base maps, significance maps, time-lapse, Case File, Checks view; browser walkthrough with no console errors |
+| M5 | Change discovery | ✅ Done 2026-11-13: hotspots with from → to labels over Sentinel-2 imagery; divergence pairs with palette colours |
 | M6 | Agent | Ask bar drives fly-to, layers and objects; numbers match tools; eval ≥ 90 % |
 | — | **Demo line** | |
 | M7 | Divergence + live layer + now vs normal | Pairs shown with arcs; fires layer; anomaly in Case File |
@@ -289,3 +289,4 @@ Ordered so the demo works as early as possible. The line marks what must exist b
 | 10 | 2026-11-13 | Bias-corrected AR(1) variance correction instead of Hamed-Rao | Simulation: Hamed-Rao gave 7–22 % false alarms on 21–45 year records; ours 2.7–6.5 % with 73–100 % power (docs/methods.md) | Hamed-Rao, pre-whitening (well calibrated but misses 24–73 % of strong trends) |
 | 11 | 2026-11-13 | Quadratic detrending + worst-case Monte Carlo check | Linear detrending called Greenland's 18 straight annual declines non-significant (p = 0.12); fix gives p < 0.001 and adds ≤ 0.3 pp false alarms | Monte Carlo with estimated persistence (false alarms up to 16 %) |
 | 12 | 2026-11-13 | Divergence regions found within 30° tiles | Planet-wide warming formed one connected region with a meaningless centre | Global connected components |
+| 13 | 2026-11-13 | Sentinel-2 cloudless (EOX, CC BY-NC-SA) as a third base map, auto-selected for change detection | NASA GIBS base maps stop at ~500 m; change hotspots need 10 m context | Esri World Imagery (licence less clear), GIBS MODIS 250 m |

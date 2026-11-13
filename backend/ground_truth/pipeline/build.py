@@ -131,11 +131,11 @@ def write_outputs(var: Variable, years: np.ndarray, cube: np.ndarray, tr: dict) 
 
     # time-lapse frames: temperature is already an anomaly; others are shown as departures
     anomalies = cube if var.id == "temperature" else cube - np.nanmean(cube, axis=0, keepdims=True)
-    frame_limit = render.symmetric_limit(anomalies)
+    frame_limit = render.symmetric_limit(anomalies, pct=95)
     for k, year in enumerate(years):
         render.write_png(render.frame(anomalies[k], frame_limit, var.palette), out / "frames" / f"{year}.png")
 
-    sig_limit = render.symmetric_limit(tr["slope_decade"][tr["significant"]])
+    sig_limit = render.symmetric_limit(tr["slope_decade"][tr["significant"]], pct=90)
     render.write_png(render.significance(tr["slope_decade"], tr["tested"], tr["significant"], sig_limit,
                                          var.palette), out / "significance.png")
 

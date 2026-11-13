@@ -1,4 +1,4 @@
-"""HTTP API for the web app.  Run: uvicorn ground_truth.api:app --host 127.0.0.1 --port 8000"""
+"""HTTP API for the web app.  Run: uvicorn ground_truth.api:app --host 127.0.0.1 --port 8765"""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ log = logging.getLogger("api")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 
 app = FastAPI(title="Ground Truth API", version="0.1.0")
-app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5179", "http://127.0.0.1:5179", "http://localhost:4179", "http://127.0.0.1:4179"],
                    allow_methods=["GET", "POST"], allow_headers=["*"])
 DERIVED.mkdir(parents=True, exist_ok=True)
 app.mount("/static/derived", StaticFiles(directory=DERIVED), name="derived")
@@ -114,8 +114,8 @@ def divergence(variable: Variable, bbox: str | None = None, limit: Annotated[int
 
 
 @app.get("/api/divergence/cluster.png")
-def divergence_cluster(variable: Variable, cluster: str):
-    png = _call(store.cluster_png, variable, cluster)
+def divergence_cluster(variable: Variable, cluster: str, color: str | None = None):
+    png = _call(store.cluster_png, variable, cluster, color)
     return Response(png, media_type="image/png", headers={"Cache-Control": "max-age=86400"})
 
 

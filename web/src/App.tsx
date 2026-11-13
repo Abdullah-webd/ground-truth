@@ -1,122 +1,70 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
+import { LayoutGroup } from "motion/react";
+import { useCallback, useRef, useState } from "react";
+import { AtlasLabel } from "./components/AtlasLabel";
+import { CaseFile } from "./components/CaseFile";
+import { ChecksView } from "./components/ChecksView";
+import { InvestigatePanel } from "./components/InvestigatePanel";
+import { Timeline } from "./components/Timeline";
+import { TopBar } from "./components/TopBar";
+import { Globe } from "./globe/Globe";
+import { GlobeSync } from "./globe/GlobeSync";
+import { useVariables } from "./lib/useVariables";
 
-function App() {
-  const [count, setCount] = useState(0)
+gsap.registerPlugin(useGSAP);
+
+export default function App() {
+  const root = useRef<HTMLDivElement>(null);
+  const [ready, setReady] = useState(false);
+  const onReady = useCallback(() => setReady(true), []);
+  const variables = useVariables();
+  const uiReady = !!variables.data;
+
+  // Instruments come online as Earth swings in: each panel arrives from its own edge.
+  useGSAP(
+    () => {
+      if (!uiReady) return;
+      const mm = gsap.matchMedia();
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        const tl = gsap.timeline({ defaults: { ease: "expo.out", duration: 0.7 }, delay: 0.5 });
+        tl.fromTo('[data-intro="top"]', { autoAlpha: 0, yPercent: -100 }, { autoAlpha: 1, yPercent: 0 })
+          .fromTo('[data-intro="left"]', { autoAlpha: 0, x: -28 }, { autoAlpha: 1, x: 0 }, "-=0.45")
+          .fromTo('[data-intro="bottom"]', { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0 }, "-=0.5");
+      });
+      mm.add("(prefers-reduced-motion: reduce)", () => {
+        gsap.set("[data-intro]", { autoAlpha: 1 });
+      });
+      const safety = window.setTimeout(() => gsap.set("[data-intro]", { autoAlpha: 1 }), 3000);
+      return () => {
+        window.clearTimeout(safety);
+        mm.revert();
+      };
+    },
+    { scope: root, dependencies: [uiReady] },
+  );
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div ref={root} className="relative h-full w-full overflow-hidden">
+      <Globe onReady={onReady} />
+      <GlobeSync ready={ready} />
+      {variables.isError && (
+        <div role="alert" className="absolute left-1/2 top-24 z-30 -translate-x-1/2 rounded-lg border border-bad/50 bg-panel px-4 py-3 text-sm text-bad">
+          Can't load the trend data: {(variables.error as Error).message}
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      )}
+      {uiReady && (
+        <LayoutGroup>
+          <div className="pointer-events-none absolute inset-0">
+            <TopBar />
+            <InvestigatePanel />
+            <Timeline />
+            <AtlasLabel />
+            <CaseFile />
+            <ChecksView />
+          </div>
+        </LayoutGroup>
+      )}
+    </div>
+  );
 }
-
-export default App

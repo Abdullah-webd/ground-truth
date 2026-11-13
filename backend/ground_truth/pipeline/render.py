@@ -7,7 +7,7 @@ import pathlib
 import numpy as np
 from PIL import Image
 
-NOT_SIGNIFICANT_RGBA = (124, 130, 140, 120)   # muted grey: tested, but change not proven
+NOT_SIGNIFICANT_RGBA = (96, 108, 122, 78)     # dim slate: tested, but change not proven
 UPSCALE = 4                                   # nearest-neighbour so cells stay crisp on the globe
 
 
@@ -41,10 +41,23 @@ def write_png(rgba: np.ndarray, path: pathlib.Path) -> None:
     img.save(path, optimize=True)
 
 
-def frame(values: np.ndarray, limit: float, palette: tuple[str, ...], alpha: int = 215) -> np.ndarray:
+def _intensity(values: np.ndarray, limit: float) -> np.ndarray:
+    """0..1 strength of each value. Square-root scaling so moderate values still read on a dark globe."""
+    return np.sqrt(np.clip(np.abs(np.nan_to_num(values)) / limit, 0, 1))
+
+
+def _ramped(values: np.ndarray, limit: float, palette: tuple[str, ...], a_min: int, a_max: int) -> np.ndarray:
+    """Colour by sign and strength; opacity grows with strength so weak signals stay translucent."""
+    k = _intensity(values, limit)
     rgba = np.zeros(values.shape + (4,), dtype=np.uint8)
-    rgba[..., :3] = colormap(values, limit, palette)
-    rgba[..., 3] = np.where(np.isfinite(values), alpha, 0)
+    rgba[..., :3] = colormap(np.sign(np.nan_to_num(values)) * k * limit, limit, palette)
+    rgba[..., 3] = (a_min + (a_max - a_min) * k).round().astype(np.uint8)
+    return rgba
+
+
+def frame(values: np.ndarray, limit: float, palette: tuple[str, ...]) -> np.ndarray:
+    rgba = _ramped(values, limit, palette, 40, 230)
+    rgba[..., 3][~np.isfinite(values)] = 0
     return rgba
 
 
@@ -53,6 +66,5 @@ def significance(slope: np.ndarray, tested: np.ndarray, significant: np.ndarray,
     rgba = np.zeros(slope.shape + (4,), dtype=np.uint8)
     rgba[tested & ~significant] = NOT_SIGNIFICANT_RGBA
     sig = tested & significant
-    rgba[..., :3][sig] = colormap(slope, limit, palette)[sig]
-    rgba[..., 3][sig] = 235
+    rgba[sig] = _ramped(slope, limit, palette, 110, 245)[sig]
     return rgba
