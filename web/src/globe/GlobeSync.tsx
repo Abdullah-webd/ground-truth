@@ -9,7 +9,7 @@ const FRAME_MS = 900;
 
 /** Keeps the Cesium scene in step with app state. Renders nothing. */
 export function GlobeSync({ ready }: { ready: boolean }) {
-  const { variable, mapView, year, base, selection, change, divergence, showFires, playing } = useApp();
+  const { variable, mapView, year, base, buildings, selection, change, divergence, showFires, playing } = useApp();
   const meta = useVariables().data?.find((v) => v.id === variable);
 
   useEffect(() => {
@@ -41,6 +41,10 @@ export function GlobeSync({ ready }: { ready: boolean }) {
   useEffect(() => {
     if (ready) globe.get()?.setBase(base);
   }, [ready, base]);
+
+  useEffect(() => {
+    if (ready) globe.get()?.setBuildings(buildings);
+  }, [ready, buildings]);
 
   useEffect(() => {
     const g = globe.get();

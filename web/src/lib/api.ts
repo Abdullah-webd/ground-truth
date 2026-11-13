@@ -44,6 +44,7 @@ async function get<T>(path: string, params: Record<string, string | number | und
 const bboxParam = (b?: BBox) => (b ? b.map((v) => v.toFixed(4)).join(",") : undefined);
 
 export const api = {
+  config: () => get<{ cesium_ion_token: string | null; photorealistic: boolean }>("/api/config"),
   health: () => get<{ status: string; variables_built: VariableId[]; agent_key: boolean }>("/api/health"),
   variables: () => get<{ variables: VariableMeta[] }>("/api/variables"),
   point: (variable: VariableId, lat: number, lon: number, signal?: AbortSignal) =>

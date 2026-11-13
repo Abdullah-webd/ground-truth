@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field
 
 from . import agent, checks, store, voice
 from .change import ChangeError, detect_change
-from .config import DERIVED, FIRMS_MAP_KEY, OPENAI_API_KEY
+from .config import CESIUM_ION_TOKEN, DERIVED, FIRMS_MAP_KEY, OPENAI_API_KEY
 from .fires import fires
 from .geo import PlaceNotFound, locate
 from .nowcast import UpstreamError, now_vs_normal
@@ -93,6 +93,12 @@ def health():
     built = [v["id"] for v in store.available()]
     return {"status": "ok", "variables_built": built, "firms_key": bool(FIRMS_MAP_KEY),
             "agent_key": bool(OPENAI_API_KEY)}
+
+
+@app.get("/api/config")
+def client_config():
+    """Browser-side settings. The Cesium ion token is a public browser token by design."""
+    return {"cesium_ion_token": CESIUM_ION_TOKEN or None, "photorealistic": bool(CESIUM_ION_TOKEN)}
 
 
 @app.get("/api/variables")

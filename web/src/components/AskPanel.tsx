@@ -3,6 +3,7 @@ import { Fragment, useEffect, useRef, useState, type FormEvent, type ReactNode }
 import { askAgent, type AgentEvent } from "../lib/agent";
 import { applyCommand, newTurnContext, type TurnContext } from "../lib/applyCommand";
 import { VoiceSession, type VoiceState } from "../lib/voice";
+import { useApp } from "../state/store";
 
 interface Step {
   id: string;
@@ -36,23 +37,58 @@ const SUGGESTIONS = [
   "How unusual is this month in Nairobi?",
 ];
 
-/** Minimal formatting for the analyst's prose: **bold** and paragraphs. */
-function Prose({ text }: { text: string }) {
+/** Inline **bold**. */
+function Inline({ text }: { text: string }) {
   return (
     <>
-      {text.split(/\n{2,}/).map((para, i) => (
-        <p key={i} className="mb-2 last:mb-0">
-          {para.split(/(\*\*[^*]+\*\*)/g).map((part, j): ReactNode =>
-            part.startsWith("**") && part.endsWith("**") ? (
-              <strong key={j} className="font-semibold text-ink">
-                {part.slice(2, -2)}
-              </strong>
-            ) : (
-              <Fragment key={j}>{part}</Fragment>
-            ),
-          )}
-        </p>
-      ))}
+      {text.split(/(\*\*[^*]+\*\*)/g).map((part, j): ReactNode =>
+        part.startsWith("**") && part.endsWith("**") ? (
+          <strong key={j} className="font-semibold text-ink">
+            {part.slice(2, -2)}
+          </strong>
+        ) : (
+          <Fragment key={j}>{part}</Fragment>
+        ),
+      )}
+    </>
+  );
+}
+
+/** Minimal formatting for the analyst's prose: paragraphs, "- " bullet lists and **bold**. */
+function Prose({ text }: { text: string }) {
+  // Bullets sometimes arrive inline (" - a - b"); put each on its own line first.
+  const normalized = text.replace(/\s+-\s(?=[A-Z])/g, "\n- ");
+  const blocks: { list: boolean; lines: string[] }[] = [];
+  for (const raw of normalized.split("\n")) {
+    const line = raw.trim();
+    if (!line) {
+      blocks.push({ list: false, lines: [] });
+      continue;
+    }
+    const isItem = /^[-•*]\s+/.test(line);
+    const last = blocks[blocks.length - 1];
+    if (last && last.list === isItem && last.lines.length) last.lines.push(isItem ? line.replace(/^[-•*]\s+/, "") : line);
+    else blocks.push({ list: isItem, lines: [isItem ? line.replace(/^[-•*]\s+/, "") : line] });
+  }
+  return (
+    <>
+      {blocks
+        .filter((b) => b.lines.length)
+        .map((b, i) =>
+          b.list ? (
+            <ul key={i} className="mb-2 flex flex-col gap-1 pl-4 last:mb-0">
+              {b.lines.map((l, j) => (
+                <li key={j} className="list-disc">
+                  <Inline text={l} />
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p key={i} className="mb-2 last:mb-0">
+              <Inline text={b.lines.join(" ")} />
+            </p>
+          ),
+        )}
     </>
   );
 }
@@ -178,6 +214,15 @@ export function AskPanel() {
     voice.current = session;
     void session.start();
   }
+
+  // Questions sent from elsewhere (Go, the case file) run here so their steps show in this panel.
+  const pendingAsk = useApp((s) => s.pendingAsk);
+  useEffect(() => {
+    if (!pendingAsk || busy) return;
+    useApp.getState().clearAsk();
+    void send(pendingAsk.text);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingAsk, busy]);
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();

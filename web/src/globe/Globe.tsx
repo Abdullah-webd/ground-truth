@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useApp } from "../state/store";
 import { GlobeController, globe } from "./controller";
 
-export function Globe({ onReady }: { onReady?: () => void }) {
+export function Globe({ onReady, ionToken }: { onReady?: () => void; ionToken: string | null }) {
   const ref = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -10,7 +10,7 @@ export function Globe({ onReady }: { onReady?: () => void }) {
     if (!ref.current) return;
     let controller: GlobeController;
     try {
-      controller = new GlobeController(ref.current);
+      controller = new GlobeController(ref.current, { ionToken });
     } catch (err) {
       setError(`The 3D globe could not start: ${(err as Error).message}. Try a browser with WebGL enabled.`);
       return;
@@ -34,7 +34,7 @@ export function Globe({ onReady }: { onReady?: () => void }) {
       globe.set(null);
       controller.destroy();
     };
-  }, [onReady]);
+  }, [onReady, ionToken]);
 
   return (
     <div className="absolute inset-0">

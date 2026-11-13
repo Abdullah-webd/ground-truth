@@ -7,6 +7,7 @@ import { formatLatLon, formatP, formatRate, shortPlace } from "../lib/format";
 import { VARIABLE_IDS, type PointTrend } from "../lib/types";
 import { useVariables } from "../lib/useVariables";
 import { useApp } from "../state/store";
+import { Briefing } from "./Briefing";
 import { SeriesChart } from "./SeriesChart";
 
 const panel = {
@@ -123,6 +124,21 @@ function PointCase({ lat, lon, name }: { lat: number; lon: number; name?: string
     <>
       <Header eyebrow={name ? "Place" : "Point"} title={title} sub={name ? formatLatLon(lat, lon) : undefined} />
       <div className="flex flex-col gap-4 px-5 py-4">
+        <Briefing trends={others.map((q) => q.data)} now={now.data} />
+        <button
+          type="button"
+          onClick={() =>
+            useApp
+              .getState()
+              .ask(
+                `Investigate ${name ? shortPlace(name) : formatLatLon(lat, lon)} (${lat.toFixed(3)}, ${lon.toFixed(3)}): what changed on the ground since 2018, and which long-term NASA trends are statistically significant there? Explain what it means.`,
+              )
+          }
+          className="btn btn-quiet self-start rounded-md border border-accent/60 px-3 py-1.5 text-sm text-accent"
+        >
+          Investigate with the analyst
+        </button>
+        <p className="-mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Detail: {t?.label ?? "selected variable"}</p>
         {trend.isPending && <Skeleton />}
         {trend.isError && <ErrorNote message={(trend.error as Error).message} />}
         {t && (

@@ -111,6 +111,13 @@ export class VoiceSession {
       case "input_audio_buffer.speech_stopped":
         this.h.onState("thinking");
         break;
+      case "response.created":
+        // Keep separate spoken answers (before and after a tool call) as separate paragraphs.
+        if (this.transcript && !this.transcript.endsWith("\n\n")) {
+          this.transcript += "\n\n";
+          this.h.onAssistantDelta("\n\n");
+        }
+        break;
       case "conversation.item.input_audio_transcription.completed":
         this.h.onUserText(String(e.transcript ?? "").trim());
         break;

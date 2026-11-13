@@ -2,7 +2,7 @@ import { create } from "zustand";
 import type { BBox, ChangeResult, Divergence, VariableId } from "../lib/types";
 
 export type MapView = "trend" | "year";
-export type BaseMap = "night" | "day" | "satellite";
+export type BaseMap = "night" | "satellite";
 
 export type Selection =
   | { kind: "point"; lat: number; lon: number; name?: string }
@@ -16,6 +16,8 @@ interface State {
   year: number | null;
   playing: boolean;
   base: BaseMap;
+  buildings: boolean;
+  pendingAsk: { text: string; key: number } | null;
   showFires: boolean;
   selection: Selection;
   atlasLabel: { text: string; key: number } | null;
@@ -28,6 +30,9 @@ interface State {
   setYear: (y: number | null) => void;
   setPlaying: (p: boolean) => void;
   setBase: (b: BaseMap) => void;
+  setBuildings: (on: boolean) => void;
+  ask: (text: string) => void;
+  clearAsk: () => void;
   toggleFires: () => void;
   select: (s: Selection) => void;
   announce: (text: string) => void;
@@ -42,7 +47,9 @@ export const useApp = create<State>((set) => ({
   mapView: "trend",
   year: null,
   playing: false,
-  base: "night",
+  base: "satellite",
+  buildings: true,
+  pendingAsk: null,
   showFires: false,
   selection: null,
   atlasLabel: null,
@@ -55,6 +62,9 @@ export const useApp = create<State>((set) => ({
   setYear: (year) => set({ year }),
   setPlaying: (playing) => set({ playing }),
   setBase: (base) => set({ base }),
+  setBuildings: (buildings) => set({ buildings }),
+  ask: (text) => set({ pendingAsk: { text, key: Date.now() } }),
+  clearAsk: () => set({ pendingAsk: null }),
   toggleFires: () => set((s) => ({ showFires: !s.showFires })),
   select: (selection) => set({ selection }),
   announce: (text) => set({ atlasLabel: { text, key: Date.now() } }),

@@ -1,4 +1,9 @@
-"""Turn grids into map overlay PNGs (equirectangular, north-up, full globe)."""
+"""Turn grids into map overlay PNGs (equirectangular, north-up, full globe).
+
+Overlays are drawn smoothly: values are interpolated bilinearly between grid-cell centres up to
+OUTPUT_WIDTH, the way NASA draws its own GISTEMP maps, instead of hard-edged cells. This is
+display only; every number the app reports comes from the grid cell itself.
+"""
 
 from __future__ import annotations
 
@@ -6,9 +11,10 @@ import pathlib
 
 import numpy as np
 from PIL import Image
+from scipy import ndimage
 
 NOT_SIGNIFICANT_RGBA = (96, 108, 122, 78)     # dim slate: tested, but change not proven
-UPSCALE = 4                                   # nearest-neighbour so cells stay crisp on the globe
+OUTPUT_WIDTH = 2880                           # 0.125° per pixel
 
 
 def _hex(h: str) -> tuple[int, int, int]:
@@ -33,12 +39,32 @@ def symmetric_limit(values: np.ndarray, pct: float = 98) -> float:
     return lim if lim > 0 else float(finite.max() or 1.0)
 
 
+def _factor(shape: tuple[int, ...]) -> float:
+    return OUTPUT_WIDTH / shape[1]
+
+
+def smooth(values: np.ndarray) -> np.ndarray:
+    """Bilinear upsampling between cell centres; gaps stay gaps (with soft edges)."""
+    f = _factor(values.shape)
+    valid = np.isfinite(values)
+    if not valid.any():
+        return np.full((round(values.shape[0] * f), round(values.shape[1] * f)), np.nan)
+    # Fill gaps from the nearest valid cell so interpolation near coasts doesn't pull in NaN.
+    idx = ndimage.distance_transform_edt(~valid, return_distances=False, return_indices=True)
+    filled = values[tuple(idx)]
+    up = ndimage.zoom(filled, f, order=1, mode="nearest", grid_mode=True)
+    up_valid = ndimage.zoom(valid.astype(float), f, order=1, mode="nearest", grid_mode=True)
+    up[up_valid < 0.5] = np.nan
+    return up
+
+
+def smooth_mask(mask: np.ndarray) -> np.ndarray:
+    return ndimage.zoom(mask.astype(float), _factor(mask.shape), order=1, mode="nearest", grid_mode=True) >= 0.5
+
+
 def write_png(rgba: np.ndarray, path: pathlib.Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    img = Image.fromarray(rgba, "RGBA")
-    if UPSCALE > 1:
-        img = img.resize((img.width * UPSCALE, img.height * UPSCALE), Image.Resampling.NEAREST)
-    img.save(path, optimize=True)
+    Image.fromarray(rgba, "RGBA").save(path, optimize=True)
 
 
 def _intensity(values: np.ndarray, limit: float) -> np.ndarray:
@@ -56,15 +82,18 @@ def _ramped(values: np.ndarray, limit: float, palette: tuple[str, ...], a_min: i
 
 
 def frame(values: np.ndarray, limit: float, palette: tuple[str, ...]) -> np.ndarray:
-    rgba = _ramped(values, limit, palette, 40, 230)
-    rgba[..., 3][~np.isfinite(values)] = 0
+    up = smooth(values)
+    rgba = _ramped(up, limit, palette, 40, 230)
+    rgba[..., 3][~np.isfinite(up)] = 0
     return rgba
 
 
 def significance(slope: np.ndarray, tested: np.ndarray, significant: np.ndarray, limit: float,
                  palette: tuple[str, ...]) -> np.ndarray:
-    rgba = np.zeros(slope.shape + (4,), dtype=np.uint8)
-    rgba[tested & ~significant] = NOT_SIGNIFICANT_RGBA
-    sig = tested & significant
-    rgba[sig] = _ramped(slope, limit, palette, 110, 245)[sig]
+    up_slope = smooth(np.where(tested, slope, np.nan))
+    up_tested = smooth_mask(tested) & np.isfinite(up_slope)
+    up_sig = smooth_mask(tested & significant) & up_tested
+    rgba = np.zeros(up_slope.shape + (4,), dtype=np.uint8)
+    rgba[up_tested & ~up_sig] = NOT_SIGNIFICANT_RGBA
+    rgba[up_sig] = _ramped(up_slope, limit, palette, 110, 245)[up_sig]
     return rgba

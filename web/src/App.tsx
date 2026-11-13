@@ -10,6 +10,8 @@ import { Timeline } from "./components/Timeline";
 import { TopBar } from "./components/TopBar";
 import { Globe } from "./globe/Globe";
 import { GlobeSync } from "./globe/GlobeSync";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "./lib/api";
 import { useVariables } from "./lib/useVariables";
 
 gsap.registerPlugin(useGSAP);
@@ -19,6 +21,8 @@ export default function App() {
   const [ready, setReady] = useState(false);
   const onReady = useCallback(() => setReady(true), []);
   const variables = useVariables();
+  const config = useQuery({ queryKey: ["config"], queryFn: api.config, staleTime: Infinity, retry: 2 });
+  const configDone = config.isSuccess || config.isError;
   const uiReady = !!variables.data;
 
   // Instruments come online as Earth swings in: each panel arrives from its own edge.
@@ -46,7 +50,7 @@ export default function App() {
 
   return (
     <div ref={root} className="relative h-full w-full overflow-hidden">
-      <Globe onReady={onReady} />
+      {configDone && <Globe onReady={onReady} ionToken={config.data?.cesium_ion_token ?? null} />}
       <GlobeSync ready={ready} />
       {variables.isError && (
         <div role="alert" className="absolute left-1/2 top-24 z-30 -translate-x-1/2 rounded-lg border border-bad/50 bg-panel px-4 py-3 text-sm text-bad">

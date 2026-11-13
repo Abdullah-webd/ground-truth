@@ -3,6 +3,7 @@ import {
   Cartesian2,
   Cartesian3,
   Cartographic,
+  ClassificationType,
   Color,
   ColorMaterialProperty,
   ConstantProperty,
@@ -12,6 +13,7 @@ import {
   HeightReference,
   ImageryLayer,
   Ion,
+  IonWorldImageryStyle,
   Math as CMath,
   PolylineDashMaterialProperty,
   PointPrimitiveCollection,
@@ -19,17 +21,17 @@ import {
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   SingleTileImageryProvider,
-  TextureMagnificationFilter,
-  TextureMinificationFilter,
+  Terrain,
   UrlTemplateImageryProvider,
   Viewer,
   WebMercatorTilingScheme,
+  createGooglePhotorealistic3DTileset,
+  createWorldImageryAsync,
+  type Cesium3DTileset,
   type Entity,
 } from "cesium";
 import gsap from "gsap";
 import type { BBox, Fire, Hotspot } from "../lib/types";
-
-Ion.defaultAccessToken = ""; // no Cesium ion: all imagery is NASA GIBS or our own
 
 const GIBS = "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best";
 const gibsCredit = new Credit("Imagery: NASA GIBS / EOSDIS", false);
@@ -38,6 +40,7 @@ const WORLD = Rectangle.fromDegrees(-180, -90, 180, 90);
 const OVERLAY_ALPHA = 0.82;
 const OVERLAY_FADE_LOW = 300_000; // m: overlay nearly gone below this camera height
 const OVERLAY_FADE_HIGH = 1_500_000; // m: overlay fully shown above this
+const BUILDINGS_BELOW = 80_000; // m: Google 3D city appears below this camera height
 const reduceMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 function gibs(layer: string, time: string, matrix: string, ext: string, maximumLevel: number) {
@@ -49,14 +52,24 @@ function gibs(layer: string, time: string, matrix: string, ext: string, maximumL
   });
 }
 
+export type BaseMap = "night" | "satellite";
 export type PickHandler = (pick: { lat: number; lon: number; entityId?: string }) => void;
+
+export interface GlobeOptions {
+  /** Cesium ion token: enables Bing aerial imagery, world terrain and Google Photorealistic 3D Tiles. */
+  ionToken?: string | null;
+}
 
 export class GlobeController {
   readonly viewer: Viewer;
+  readonly photorealistic: boolean;
   private night: ImageryLayer;
-  private day: ImageryLayer;
   private satellite: ImageryLayer;
   private reference: ImageryLayer[] = [];
+  private base: BaseMap = "satellite";
+  private buildingsWanted = true;
+  private tileset: Cesium3DTileset | null = null;
+  private tilesetLoading = false;
   private overlay: { layer: ImageryLayer; fade: { v: number } } | null = null;
   private overlays = new Set<{ layer: ImageryLayer; fade: { v: number } }>();
   private overlayToken = 0;
@@ -68,7 +81,9 @@ export class GlobeController {
   private arc: Entity | null = null;
   private pickHandlers = new Set<PickHandler>();
 
-  constructor(container: HTMLElement) {
+  constructor(container: HTMLElement, options: GlobeOptions = {}) {
+    this.photorealistic = !!options.ionToken;
+    Ion.defaultAccessToken = options.ionToken ?? "";
     this.viewer = new Viewer(container, {
       baseLayer: false,
       animation: false,
@@ -81,8 +96,8 @@ export class GlobeController {
       fullscreenButton: false,
       infoBox: false,
       selectionIndicator: false,
-      creditContainer: undefined,
       contextOptions: { webgl: { preserveDrawingBuffer: true, alpha: false } },
+      ...(this.photorealistic ? { terrain: Terrain.fromWorldTerrain() } : {}),
     });
     const { scene } = this.viewer;
     scene.backgroundColor = Color.fromCssColorString("#05080d");
@@ -92,34 +107,36 @@ export class GlobeController {
     scene.globe.baseColor = Color.fromCssColorString("#0a0f16");
     scene.globe.showGroundAtmosphere = true;
     scene.globe.enableLighting = false;
-    scene.fog.enabled = false;
-    scene.screenSpaceCameraController.minimumZoomDistance = 1500;
+    scene.globe.depthTestAgainstTerrain = this.photorealistic;
+    scene.fog.enabled = this.photorealistic;
+    scene.screenSpaceCameraController.minimumZoomDistance = this.photorealistic ? 40 : 400;
     scene.screenSpaceCameraController.maximumZoomDistance = 4.5e7;
 
     const layers = this.viewer.imageryLayers;
     this.night = layers.addImageryProvider(gibs("VIIRS_Black_Marble", "2016-01-01", "GoogleMapsCompatible_Level8", "png", 8));
-    this.day = layers.addImageryProvider(
-      gibs("BlueMarble_ShadedRelief_Bathymetry", "2004-08-01", "GoogleMapsCompatible_Level8", "jpeg", 8),
-    );
-    this.day.show = false;
     this.night.brightness = 1.15;
-    this.satellite = layers.addImageryProvider(
-      new UrlTemplateImageryProvider({
-        url: "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2023_3857/default/g/{z}/{y}/{x}.jpg",
-        tilingScheme: new WebMercatorTilingScheme(),
-        maximumLevel: 15,
-        credit: new Credit("Sentinel-2 cloudless 2023 by EOX IT Services GmbH (contains modified Copernicus Sentinel data 2023), CC BY-NC-SA 4.0", false),
-      }),
-    );
-    this.satellite.show = false;
+    this.night.show = false;
+    if (this.photorealistic) {
+      // Bing Maps aerial imagery with labels via Cesium ion: sub-metre detail in most cities.
+      this.satellite = ImageryLayer.fromProviderAsync(createWorldImageryAsync({ style: IonWorldImageryStyle.AERIAL_WITH_LABELS }));
+      layers.add(this.satellite);
+    } else {
+      this.satellite = layers.addImageryProvider(
+        new UrlTemplateImageryProvider({
+          url: "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2023_3857/default/g/{z}/{y}/{x}.jpg",
+          tilingScheme: new WebMercatorTilingScheme(),
+          maximumLevel: 15,
+          credit: new Credit("Sentinel-2 cloudless 2023 by EOX IT Services GmbH (contains modified Copernicus Sentinel data 2023), CC BY-NC-SA 4.0", false),
+        }),
+      );
+    }
 
     const coast = layers.addImageryProvider(gibs("Coastlines_15m", "2020-01-01", "GoogleMapsCompatible_Level13", "png", 9));
     coast.alpha = 0.35;
-    const labels = layers.addImageryProvider(
-      gibs("Reference_Labels_15m", "2020-01-01", "GoogleMapsCompatible_Level13", "png", 13),
-    );
+    const labels = layers.addImageryProvider(gibs("Reference_Labels_15m", "2020-01-01", "GoogleMapsCompatible_Level13", "png", 12));
     labels.alpha = 0.85;
     this.reference = [coast, labels];
+    this.applyBase();
 
     this.fires = scene.primitives.add(new PointPrimitiveCollection());
 
@@ -128,13 +145,30 @@ export class GlobeController {
 
     this.viewer.camera.setView({ destination: Cartesian3.fromDegrees(8, 14, 6.0e7) });
 
-    // Variable overlays are 0.5–2° grids: meaningful from orbit, misleading at street level.
-    // Fade them out as the camera descends below ~1,500 km.
     scene.preRender.addEventListener(() => {
       const h = this.viewer.camera.positionCartographic.height;
+      // Variable overlays are 0.5–2° grids: meaningful from orbit, misleading at street level.
       const altitude = Math.min(1, Math.max(0, (h - OVERLAY_FADE_LOW) / (OVERLAY_FADE_HIGH - OVERLAY_FADE_LOW)));
       for (const o of this.overlays) o.layer.alpha = o.fade.v * OVERLAY_ALPHA * (0.08 + 0.92 * altitude);
+      // The photorealistic city takes over close to the ground.
+      const wantCity = this.photorealistic && this.buildingsWanted && this.base === "satellite" && h < BUILDINGS_BELOW;
+      if (wantCity && !this.tileset && !this.tilesetLoading) void this.loadTileset();
+      if (this.tileset) this.tileset.show = wantCity;
     });
+  }
+
+  private async loadTileset() {
+    this.tilesetLoading = true;
+    try {
+      // Google requires its own geocoder alongside these tiles; our place search uses Google via ion.
+      const tileset = await createGooglePhotorealistic3DTileset({ onlyUsingWithGoogleGeocoder: true });
+      this.viewer.scene.primitives.add(tileset);
+      this.tileset = tileset;
+    } catch (err) {
+      console.warn("Photorealistic 3D tiles unavailable:", err);
+    } finally {
+      this.tilesetLoading = false;
+    }
   }
 
   /** Opening shot: Earth swings in from deep space. */
@@ -155,18 +189,33 @@ export class GlobeController {
     const { scene, camera } = this.viewer;
     const picked = scene.pick(position);
     const entityId: string | undefined = picked?.id?.id && typeof picked.id.id === "string" ? picked.id.id : undefined;
-    const ray = camera.getPickRay(position);
-    const cartesian = ray ? scene.globe.pick(ray, scene) : undefined;
+    let cartesian: Cartesian3 | undefined;
+    if (this.tileset?.show && scene.pickPositionSupported) cartesian = scene.pickPosition(position);
+    if (!cartesian) {
+      const ray = camera.getPickRay(position);
+      cartesian = ray ? scene.globe.pick(ray, scene) : undefined;
+    }
     if (!cartesian) return;
     const c = Cartographic.fromCartesian(cartesian);
     const pick = { lat: CMath.toDegrees(c.latitude), lon: CMath.toDegrees(c.longitude), entityId };
     this.pickHandlers.forEach((fn) => fn(pick));
   }
 
-  setBase(base: "night" | "day" | "satellite") {
-    this.night.show = base === "night";
-    this.day.show = base === "day";
-    this.satellite.show = base === "satellite";
+  private applyBase() {
+    this.night.show = this.base === "night";
+    this.satellite.show = this.base === "satellite";
+    // NASA reference labels help on the night map, and on Sentinel-2, which has no labels of its own.
+    const labelsNeeded = this.base === "night" || !this.photorealistic;
+    for (const r of this.reference) r.show = labelsNeeded;
+  }
+
+  setBase(base: BaseMap) {
+    this.base = base;
+    this.applyBase();
+  }
+
+  setBuildings(on: boolean) {
+    this.buildingsWanted = on;
   }
 
   /** Swap the data overlay with a crossfade. Later calls win over slower earlier loads. */
@@ -192,8 +241,6 @@ export class GlobeController {
     const provider = await SingleTileImageryProvider.fromUrl(url, { rectangle: WORLD });
     if (token !== this.overlayToken) return;
     const layer = new ImageryLayer(provider, { alpha: 0 });
-    layer.magnificationFilter = TextureMagnificationFilter.NEAREST;
-    layer.minificationFilter = TextureMinificationFilter.NEAREST;
     layers.add(layer, layers.indexOf(this.satellite) + 1);
     const entry = { layer, fade: { v: 0 } };
     this.overlays.add(entry);
@@ -292,25 +339,23 @@ export class GlobeController {
       type: "FeatureCollection",
       features: hotspots.map((h) => ({ type: "Feature", id: `hotspot:${h.id}`, properties: { id: h.id }, geometry: h.geometry })),
     };
+    // Clamped to the ground so the outlines drape over terrain and the 3D city.
     const ds = await GeoJsonDataSource.load(collection, {
       stroke: ACCENT,
       fill: ACCENT.withAlpha(0.12),
       strokeWidth: 2,
-      clampToGround: false,
+      clampToGround: true,
     });
     for (const entity of ds.entities.values) {
       const hid = entity.properties?.id?.getValue() as string | undefined;
       const selected = hid === selectedId;
       if (entity.polygon) {
-        entity.polygon.material = new ColorMaterialProperty(ACCENT.withAlpha(selected ? 0.45 : 0.16));
+        entity.polygon.material = new ColorMaterialProperty(ACCENT.withAlpha(selected ? 0.5 : 0.22));
         entity.polygon.outlineColor = new ConstantProperty(ACCENT);
+        entity.polygon.classificationType = new ConstantProperty(ClassificationType.BOTH);
       }
+      if (hid) entity.name = `hotspot:${hid}`;
     }
-    // Entities are pickable by id; tag them so clicks resolve to the hotspot.
-    ds.entities.values.forEach((e) => {
-      const hid = e.properties?.id?.getValue() as string | undefined;
-      if (hid) e.name = `hotspot:${hid}`;
-    });
     await this.viewer.dataSources.add(ds);
     this.hotspots = ds;
   }
@@ -331,7 +376,6 @@ export class GlobeController {
     for (const url of urls) {
       const provider = await SingleTileImageryProvider.fromUrl(url, { rectangle: WORLD });
       const layer = new ImageryLayer(provider, { alpha: 0 });
-      layer.magnificationFilter = TextureMagnificationFilter.NEAREST;
       this.viewer.imageryLayers.add(layer, this.viewer.imageryLayers.indexOf(this.reference[0]));
       gsap.to(layer, { alpha: 0.95, duration: reduceMotion() ? 0 : 0.5 });
       this.clusterLayers.push(layer);

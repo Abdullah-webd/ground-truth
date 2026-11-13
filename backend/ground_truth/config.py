@@ -18,6 +18,8 @@ DERIVED = DATA / "derived"
 EE_PROJECT = os.getenv("EE_PROJECT", "")
 FIRMS_MAP_KEY = os.getenv("FIRMS_MAP_KEY", "")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+# Cesium ion access token: a browser token by design (restrict it to your origin in the ion dashboard).
+CESIUM_ION_TOKEN = os.getenv("CESIUM_ION_TOKEN", "")
 AGENT_MODEL = os.getenv("AGENT_MODEL", "gpt-5.6-terra")
 USER_AGENT = "GroundTruth/0.1 (NASA Space Apps 2026 project; local research tool)"
 

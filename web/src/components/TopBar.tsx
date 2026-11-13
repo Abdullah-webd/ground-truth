@@ -1,4 +1,6 @@
+import { useQuery } from "@tanstack/react-query";
 import { motion } from "motion/react";
+import { api } from "../lib/api";
 import { useVariables } from "../lib/useVariables";
 import { useApp } from "../state/store";
 
@@ -10,13 +12,13 @@ const SHORT: Record<string, string> = {
 };
 
 const BASES = [
+  { id: "satellite", label: "Satellite", title: "Real satellite imagery: zoom in to street level" },
   { id: "night", label: "Night", title: "NASA Black Marble: city lights at night" },
-  { id: "day", label: "Blue Marble", title: "NASA Blue Marble: shaded relief and bathymetry" },
-  { id: "satellite", label: "Sentinel-2", title: "Sentinel-2 cloudless 2023, 10 m: best for close-up change" },
 ] as const;
 
 export function TopBar() {
-  const { variable, setVariable, base, setBase, showFires, toggleFires, setChecksOpen } = useApp();
+  const { variable, setVariable, base, setBase, buildings, setBuildings, showFires, toggleFires, setChecksOpen } = useApp();
+  const photorealistic = useQuery({ queryKey: ["config"], queryFn: api.config, staleTime: Infinity }).data?.photorealistic ?? false;
   const variables = useVariables().data ?? [];
 
   return (
@@ -70,6 +72,18 @@ export function TopBar() {
             </button>
           ))}
         </div>
+        <button
+          type="button"
+          onClick={() => setBuildings(!buildings)}
+          disabled={!photorealistic}
+          aria-pressed={photorealistic && buildings}
+          title={photorealistic ? "Google photorealistic 3D city when you zoom in close" : "Add CESIUM_ION_TOKEN to .env to enable the photorealistic 3D city"}
+          className={`btn whitespace-nowrap rounded-md border px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-40 ${
+            photorealistic && buildings ? "border-accent text-accent" : "btn-quiet border-line text-muted"
+          }`}
+        >
+          3D city
+        </button>
         <button
           type="button"
           onClick={toggleFires}

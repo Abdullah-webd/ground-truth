@@ -1,0 +1,27 @@
+// "Go to a place" should fly there, show a plain-English briefing, and hand the place to the analyst.
+import { chromium } from "playwright";
+const base = process.argv[2] ?? "http://localhost:4179";
+const place = process.argv[3] ?? "Abuja, Nigeria";
+const out = "../.verify/walkthrough";
+const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
+const page = await browser.newPage({ viewport: { width: 1600, height: 900 } });
+const errors = [];
+page.on("pageerror", (e) => errors.push(String(e)));
+await page.goto(base, { waitUntil: "load" });
+await page.waitForTimeout(5000);
+await page.screenshot({ path: `${out}/go-0-globe.png` });
+await page.fill("#place-search", place);
+await page.press("#place-search", "Enter");
+await page.waitForSelector('section[aria-label^="What"] ul', { timeout: 30000 });
+await page.waitForTimeout(2500);
+await page.screenshot({ path: `${out}/go-1-briefing.png` });
+console.log("BRIEFING:\n" + (await page.locator('section[aria-label^="What"]').innerText()));
+const t0 = Date.now();
+await page.waitForSelector('text=Investigating…', { timeout: 15000 });
+await page.waitForFunction(() => !document.body.innerText.includes("Investigating…"), null, { timeout: 150000 });
+console.log(`\nanalyst finished in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
+await page.waitForTimeout(2500);
+await page.screenshot({ path: `${out}/go-2-analyst.png` });
+console.log("ANALYST:\n" + (await page.locator('section[aria-label="Ask the analyst"] article').last().innerText()));
+console.log("page errors:", errors.length ? errors : "none");
+await browser.close();

@@ -51,9 +51,14 @@ export function InvestigatePanel() {
       const [w, s, e2, n] = place.bbox;
       const g = globe.get();
       if (g) {
-        if (e2 - w > 0.05 && e2 - w < 40 && n - s < 40) await g.flyToBox(place.bbox);
-        else await g.flyToPoint(place.lat, place.lon, 1.2e6);
+        if (e2 - w > 0.05 && e2 - w < 40 && n - s < 40) void g.flyToBox(place.bbox);
+        else void g.flyToPoint(place.lat, place.lon, 1.2e6);
       }
+      // Hand the place to the analyst so the full investigation appears in this panel.
+      useApp
+        .getState()
+        .ask(`Brief me on ${shortPlace(place.name)}: what changed on the ground since 2018, and which long-term NASA trends are statistically significant there? Explain what it means for people there.`);
+      setQuery("");
     } catch (err) {
       setError(err instanceof ApiError && err.code === "place_not_found" ? `No place called "${q}" was found. Try adding the country.` : (err as Error).message);
     } finally {
