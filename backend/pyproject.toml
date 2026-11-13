@@ -1,0 +1,39 @@
+[project]
+name = "ground-truth"
+version = "0.1.0"
+description = "Earth change detection and trend significance for NASA Space Apps 2026"
+requires-python = ">=3.12"
+dependencies = [
+  "numpy>=2.0",
+  "scipy>=1.14",
+  "pymannkendall>=1.4.3",
+  "earthengine-api>=1.0",
+  "xarray>=2025.1",
+  "netCDF4>=1.7",
+  "pillow>=11.0",
+  "requests>=2.32",
+  "httpx>=0.28",
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.32",
+  "openai>=3.50",
+  "python-dotenv>=1.0",
+  "pydantic>=2.9",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3", "statsmodels>=0.14", "ruff>=0.8"]
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["ground_truth*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["live: calls real external services (Earth Engine, NASA, OpenAI)"]
+addopts = "-m 'not live'"
+
+[tool.ruff]
+line-length = 110

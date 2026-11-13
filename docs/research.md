@@ -39,13 +39,13 @@ No public entry found uses AlphaEarth embeddings to find change without choosing
 Also available in Earth Engine if needed later: MODIS LST `MODIS/061/MOD11A2`, MERRA-2 `NASA/GSFC/MERRA/slv/2` (1980 →), GLDAS 2.1, FLDAS.
 
 Gut-check results (2026-11-13):
-- NASA POWER T2M, Lagos, 1981–2024: increasing, +0.17 °C/decade, Hamed-Rao modified MK p < 1e-6.
+- NASA POWER T2M, Lagos, 1981–2024: increasing, +0.17 °C/decade, p < 1e-6 (Hamed-Rao at the time; the final method is in docs/methods.md).
 - AlphaEarth 2018 vs 2024, 30 km around Lagos: median change 0.033, 99th percentile 0.264, 0.7 % of area above 0.3; hotspots on the Lekki corridor and the northern urban fringe (plausible, not yet checked against imagery).
 
 ## 4. Statistics
 
 - Mann-Kendall test for monotonic trend; Sen's slope for magnitude.
-- Hamed & Rao (1998) variance correction for autocorrelation (pymannkendall `hamed_rao_modification_test`).
+- Autocorrelation correction: Hamed & Rao (1998) was planned; simulation showed inflated false alarms on short records, so we use a bias-corrected AR(1) variance correction (Yue & Wang 2004). Details in docs/methods.md.
 - Benjamini-Hochberg false discovery rate across grid cells (Wilks 2016, "The stippling shows statistically significant grid points", BAMS) to stop map-wide false positives.
 - Validation targets: global-mean GISTEMP trend over the same period against NASA GISS's published figure; our vectorized MK against pymannkendall on sampled cells.
 

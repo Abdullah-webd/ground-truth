@@ -7,7 +7,7 @@
 
 **Problem.** The NASA Space Apps 2026 challenge "Be An Earth System Trend Detective" asks for a tool that selects Earth science variables, shows how they change over time, and determines what is changing, where, how much, and whether the change is statistically significant. The hard part, in the brief's own words, is *selecting* which variables could indicate change.
 
-**Product.** Ground Truth is an AI analyst on a 3D globe. You ask a question in plain English. It finds where the land surface changed (AlphaEarth embeddings, no variable chosen in advance), names what each place became (Dynamic World labels), and proves whether related NASA variables are trending significantly (Mann-Kendall with Hamed-Rao correction, Sen's slope, false discovery rate control).
+**Product.** Ground Truth is an AI analyst on a 3D globe. You ask a question in plain English. It finds where the land surface changed (AlphaEarth embeddings, no variable chosen in advance), names what each place became (Dynamic World labels), and proves whether related NASA variables are trending significantly (Mann-Kendall with a bias-corrected autocorrelation correction, Theil-Sen slope, false discovery rate control; see [docs/methods.md](docs/methods.md)).
 
 **Users.** Hackathon judges (primary, live demo), scientists and students exploring change, our own team.
 
@@ -46,7 +46,7 @@
 **Functional.**
 - F1. A user question in natural language produces a streamed answer plus globe actions (fly-to, layers, objects) within one turn.
 - F2. `detect_change(region, year_a, year_b)` returns a change layer and up to 20 hotspot objects, each with centroid, area, mean change score, and from → to land-cover labels.
-- F3. For each of the four variables, a precomputed global grid of Sen's slope, p-value (Hamed-Rao), and FDR-adjusted significance.
+- F3. For each of the four variables, a precomputed global grid of Theil-Sen slope, corrected p-value, and FDR-adjusted significance.
 - F4. Non-significant cells render grey; significant cells render on a diverging scale by slope.
 - F5. Clicking any point returns that cell's yearly series, slope with units per decade, p-value, and a verdict string built from the numbers, not from the language model.
 - F6. Time-lapse plays yearly frames for a variable with a scrubber.
@@ -105,7 +105,7 @@ flowchart LR
 
 ## 6. Components
 
-**6.1 Offline pipeline (`pipeline/`).** Builds the trend store. For each variable: fetch annual means (or totals) for complete years on a 0.5° grid (temperature stays on GISTEMP's native 2° grid; resampling it finer would fake detail) (temperature 1980–2025, NDVI 2001–2025, rainfall 2001–2024, water 2003–2023), compute per-cell Sen's slope, Hamed-Rao p-value, and Benjamini-Hochberg significance, then write a series cube, a trend grid, one PNG overlay per year (time-lapse), a significance overlay PNG, and divergence clusters. Idempotent: skips steps whose outputs exist unless `--force`. Failure: stops with the step and variable named; nothing partial is published.
+**6.1 Offline pipeline (`pipeline/`).** Builds the trend store. For each variable: fetch annual means (or totals) for complete years on a 0.5° grid (temperature stays on GISTEMP's native 2° grid; resampling it finer would fake detail) (temperature 1980–2025, NDVI 2001–2025, rainfall 2001–2024, water 2003–2023), compute per-cell Theil-Sen slope, corrected p-value (docs/methods.md), and Benjamini-Hochberg significance, then write a series cube, a trend grid, one PNG overlay per year (time-lapse), a significance overlay PNG, and divergence clusters. Idempotent: skips steps whose outputs exist unless `--force`. Failure: stops with the step and variable named; nothing partial is published.
 
 **6.2 Trend store (`data/derived/`).** Per variable: `series.npz` (years × lat × lon, float32), `trend.npz` (slope, p, q, significant), `frames/{year}.png`, `significance.png`, `divergence.json`, `meta.json` (units, period, source, citation). Read-only at runtime; loaded into memory at backend start (~60 MB total).
 
@@ -249,7 +249,7 @@ Ordered so the demo works as early as possible. The line marks what must exist b
 
 | # | Milestone | Acceptance criteria |
 |---|---|---|
-| M1 | Statistics core | Vectorized MK/Hamed-Rao/Sen/FDR pass all unit tests against pymannkendall |
+| M1 | Statistics core | ✅ Done 2026-11-13: vectorized MK + correction + Theil-Sen + FDR; 19 tests pass; false alarms 2.7–6.5 %, power 73–100 % |
 | M2 | Pipeline: 4 variables | Trend store built; GISTEMP global-mean check passes; overlays look right |
 | M3 | Backend API | All endpoints return correct data with tests; `/api/health` green |
 | M4 | Globe app | Dark console UI, layers, significance maps, click-anywhere Case File, time-lapse |
@@ -286,3 +286,4 @@ Ordered so the demo works as early as possible. The line marks what must exist b
 | 7 | 2026-11-13 | Keyless imagery (GIBS) instead of Cesium ion | No extra account, NASA imagery fits the story | Cesium ion token |
 | 8 | 2026-11-13 | 0.5° grid for NDVI, rainfall and water; native 2° for GISTEMP | Comparable maps at a manageable size (~260k cells) without inventing temperature detail | One common grid for all |
 | 9 | 2026-11-13 | OpenAI `gpt-5.6-terra` for the agent instead of Claude | User has OpenAI credit; model verified on the account with working tool calls | Claude Opus 5.5, Gemini free tier |
+| 10 | 2026-11-13 | Bias-corrected AR(1) variance correction instead of Hamed-Rao | Simulation: Hamed-Rao gave 7–22 % false alarms on 21–45 year records; ours 2.7–6.5 % with 73–100 % power (docs/methods.md) | Hamed-Rao, pre-whitening (well calibrated but misses 24–73 % of strong trends) |
