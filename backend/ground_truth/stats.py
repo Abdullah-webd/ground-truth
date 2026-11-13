@@ -62,7 +62,7 @@ def _tie_term(x: np.ndarray) -> np.ndarray:
 
 def _block(x: np.ndarray, t: np.ndarray) -> dict[str, np.ndarray]:
     """All statistics for rows of `x` (rows, n) sampled at shared times `t` (n,)."""
-    rows, n = x.shape
+    n = x.shape[1]
     i, j = np.triu_indices(n, k=1)
     diffs = x[:, j] - x[:, i]
     s = np.sign(diffs).sum(axis=1)
@@ -84,8 +84,8 @@ def _block(x: np.ndarray, t: np.ndarray) -> dict[str, np.ndarray]:
         sd = np.sqrt(var_s * var_ratio)
         z = np.where(s > 0, (s - 1) / sd, np.where(s < 0, (s + 1) / sd, 0.0))
     p = 2 * norm.sf(np.abs(z))
-    return dict(slope=slope, intercept=intercept, s=s, var_s=var_s, rho=rho,
-                var_ratio=var_ratio, z=z, p=p, tau=tau)
+    return {"slope": slope, "intercept": intercept, "s": s, "var_s": var_s, "rho": rho,
+            "var_ratio": var_ratio, "z": z, "p": p, "tau": tau}
 
 
 def mann_kendall(series: np.ndarray, times: np.ndarray | None = None) -> TrendResult:
