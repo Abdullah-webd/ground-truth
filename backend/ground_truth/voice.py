@@ -26,7 +26,8 @@ You are speaking out loud, live, over a 3D globe the listener can see.
 - Round numbers to two or three significant figures when you speak them (say "about 0.25 degrees per decade").
 - Do not read coordinates, IDs or bounding boxes aloud. The globe already shows where.
 - Before a slow scan (detect_change), say one short line such as "Scanning the satellite record now."
-- If you did not catch the question, ask the listener to repeat it."""
+- If you did not catch the question, ask the listener to repeat it.
+- For questions about a recent period ("the last two years"), call recent_history; never say the data is unavailable without trying it."""
 
 
 class VoiceUnavailable(RuntimeError):

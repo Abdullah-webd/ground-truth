@@ -24,7 +24,7 @@ from .change import ChangeError, detect_change
 from .config import AGENT_MODEL, CACHE, OPENAI_API_KEY
 from .fires import fires
 from .geo import PlaceNotFound, locate
-from .nowcast import UpstreamError, now_vs_normal
+from .nowcast import UpstreamError, now_vs_normal, recent_history
 
 log = logging.getLogger("agent")
 
@@ -43,7 +43,7 @@ How you work:
 - For "what changed around <place>": locate_place, then detect_change (default 2018 to 2024 unless the user gives years), then trend_at_point for the 2-3 NASA variables most relevant to what changed (for example built-up or bare ground: temperature and vegetation; water changes: water and rainfall).
 - For "where is <variable> changing" or "show me <variable>": set_view for that variable, then trend_in_region or find_divergence if a region or contrast is asked for.
 - For "opposite trends" or "divergence": find_divergence.
-- For "right now", "this month" or "recent": now_vs_normal or live_events. Say clearly that recent conditions are an anomaly, not a trend.
+- For "right now" or "this month": now_vs_normal. For a recent period of 1 to 60 months ("the last two years", "since last summer", "temperature range this year"): recent_history, which gives daily NASA records summarised by month, the hottest day, the coldest night and comparisons with normal. For anything longer, use the trend tools. Say clearly that recent conditions are not a long-term trend. For fires: live_events.
 - Use locate_place before any tool that needs coordinates for a named place.
 - Match the tool to the size of the place. For a country, region, ice sheet, desert, basin or continent (for example Greenland, northern India, the Sahel, the Amazon, the Arctic), use trend_in_region with the place's bounding box; a single point at its centre can show the opposite of the regional trend. Use trend_at_point only for a city, a site, or a point the user clicked.
 
@@ -52,7 +52,8 @@ How you write:
 - State the rate per decade, the period, and the p-value for trends. Say "statistically significant" only when the tool says significant is true; otherwise say the change is not statistically significant and could be natural variability.
 - Change detection (AlphaEarth embeddings, Google DeepMind) finds where the land surface changed and what it became. Trend significance comes from NASA records (GISTEMP, MODIS, GPM IMERG, GRACE). Do not call AlphaEarth NASA data.
 - Never claim a cause. You may say what changed and where; explaining why needs further analysis.
-- If a tool returns an error, explain it simply and suggest what to try instead."""
+- If a tool returns an error, explain it simply and suggest what to try instead.
+- You are the whole product. Never tell the user to find another dataset, tool, service or API key. If a question is outside what the tools can measure, say so in one sentence and answer the closest question the tools can."""
 
 
 def _schema(properties: dict, required: list[str] | None = None) -> dict:
@@ -91,6 +92,11 @@ TOOLS = [
      "description": "The last 30 days of temperature and rainfall at a point compared with the 1991-2020 normal "
                     "(NASA POWER). This is a recent anomaly, not a trend.",
      "parameters": _schema({"lat": NUM, "lon": NUM})},
+    {"type": "function", "name": "recent_history", "strict": True,
+     "description": "Daily NASA POWER temperature and rainfall at a point for the last 1-60 months, summarised by "
+                    "month: mean, hottest day, coldest night, rainfall, and each month compared with the 1991-2020 "
+                    "normal. Use for questions about recent periods such as the last two years.",
+     "parameters": _schema({"lat": NUM, "lon": NUM, "months": {"type": "integer", "minimum": 1, "maximum": 60}})},
     {"type": "function", "name": "live_events", "strict": True,
      "description": "Active fires detected by NASA FIRMS (VIIRS) in the last 24 hours inside a bounding box.",
      "parameters": _schema({"bbox": BBOX})},
@@ -108,6 +114,7 @@ STATUS = {
     "trend_in_region": "Testing the regional {variable} trend",
     "find_divergence": "Looking for opposite {variable} trends",
     "now_vs_normal": "Comparing the last 30 days with normal",
+    "recent_history": "Reading {months} months of daily NASA records",
     "live_events": "Checking live fires",
     "set_view": "Switching the map",
 }
@@ -184,6 +191,15 @@ def _run_tool(name: str, args: dict, st: TurnState) -> dict:
             r = now_vs_normal(args["lat"], args["lon"])
             return {k: r[k] for k in ("window", "normal_period", "temperature", "rainfall", "summary") if k in r}
 
+        if name == "recent_history":
+            r = recent_history(args["lat"], args["lon"], args["months"])
+            st.ui.append({"action": "point", "variable": "temperature", "lat": args["lat"], "lon": args["lon"]})
+            months = r["months"]
+            if len(months) > 24:  # keep the model's context small: quarterly summary beyond two years
+                months = months[-24:]
+            return {**{k: r[k] for k in ("period", "days", "normal_period", "temperature", "rainfall", "note")},
+                    "months": months}
+
         if name == "live_events":
             r = fires(tuple(args["bbox"]), limit=5)
             st.ui.append({"action": "fires", "bbox": list(args["bbox"])})
@@ -255,6 +271,7 @@ def unverified_numbers(text: str, known: set[float]) -> list[str]:
 @dataclass
 class Session:
     previous_response_id: str | None = None
+    numbers: set[float] = field(default_factory=set)  # every tool number seen in this conversation
     lock: threading.Lock = field(default_factory=threading.Lock)
     last_used: float = field(default_factory=time.time)
 
@@ -383,7 +400,8 @@ def run_turn(session_id: str, text: str, client_factory: Callable[[], OpenAI] | 
                 outputs.append({"type": "function_call_output", "call_id": fc.call_id, "output": json.dumps(result)})
             pending_input = outputs
         _collect_numbers(text, st.numbers)
-        flagged = unverified_numbers(answer, st.numbers)
+        sess.numbers |= st.numbers
+        flagged = unverified_numbers(answer, sess.numbers)
         if flagged:
             log.warning("turn %s: numbers not found in tool results: %s", turn_id, flagged)
         yield {"type": "done", "turn": turn_id, "unverified_numbers": flagged, "tool_calls": len(tool_log),

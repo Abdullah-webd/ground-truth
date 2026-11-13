@@ -77,7 +77,7 @@ export function TopBar() {
           onClick={() => setBuildings(!buildings)}
           disabled={!photorealistic}
           aria-pressed={photorealistic && buildings}
-          title={photorealistic ? "Google photorealistic 3D city when you zoom in close" : "Add CESIUM_ION_TOKEN to .env to enable the photorealistic 3D city"}
+          title={photorealistic ? "Google photorealistic 3D city when you zoom in close. Tilt the view: hold Ctrl and drag, or drag with the right mouse button." : "Add CESIUM_ION_TOKEN to .env to enable the photorealistic 3D city"}
           className={`btn whitespace-nowrap rounded-md border px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-40 ${
             photorealistic && buildings ? "border-accent text-accent" : "btn-quiet border-line text-muted"
           }`}

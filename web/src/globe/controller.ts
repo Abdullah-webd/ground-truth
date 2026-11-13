@@ -41,6 +41,7 @@ const OVERLAY_ALPHA = 0.82;
 const OVERLAY_FADE_LOW = 300_000; // m: overlay nearly gone below this camera height
 const OVERLAY_FADE_HIGH = 1_500_000; // m: overlay fully shown above this
 const BUILDINGS_BELOW = 80_000; // m: Google 3D city appears below this camera height
+const STREET_LABELS_BELOW = 400_000; // m: labelled imagery below this; clean imagery from orbit
 const reduceMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 function gibs(layer: string, time: string, matrix: string, ext: string, maximumLevel: number) {
@@ -65,6 +66,7 @@ export class GlobeController {
   readonly photorealistic: boolean;
   private night: ImageryLayer;
   private satellite: ImageryLayer;
+  private satelliteLabels: ImageryLayer | null = null;
   private reference: ImageryLayer[] = [];
   private base: BaseMap = "satellite";
   private buildingsWanted = true;
@@ -116,19 +118,38 @@ export class GlobeController {
     this.night = layers.addImageryProvider(gibs("VIIRS_Black_Marble", "2016-01-01", "GoogleMapsCompatible_Level8", "png", 8));
     this.night.brightness = 1.15;
     this.night.show = false;
+    const sentinel = () =>
+      new UrlTemplateImageryProvider({
+        url: "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2023_3857/default/g/{z}/{y}/{x}.jpg",
+        tilingScheme: new WebMercatorTilingScheme(),
+        maximumLevel: 15,
+        credit: new Credit("Sentinel-2 cloudless 2023 by EOX IT Services GmbH (contains modified Copernicus Sentinel data 2023), CC BY-NC-SA 4.0", false),
+      });
     if (this.photorealistic) {
-      // Bing Maps aerial imagery with labels via Cesium ion: sub-metre detail in most cities.
-      this.satellite = ImageryLayer.fromProviderAsync(createWorldImageryAsync({ style: IonWorldImageryStyle.AERIAL_WITH_LABELS }));
+      // Bing Maps aerial imagery via Cesium ion: sub-metre detail in most cities. Clean imagery from
+      // orbit (labels baked into the imagery look blurry at globe scale); labelled imagery close up.
+      this.satellite = ImageryLayer.fromProviderAsync(createWorldImageryAsync({ style: IonWorldImageryStyle.AERIAL }));
       layers.add(this.satellite);
-    } else {
-      this.satellite = layers.addImageryProvider(
-        new UrlTemplateImageryProvider({
-          url: "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2023_3857/default/g/{z}/{y}/{x}.jpg",
-          tilingScheme: new WebMercatorTilingScheme(),
-          maximumLevel: 15,
-          credit: new Credit("Sentinel-2 cloudless 2023 by EOX IT Services GmbH (contains modified Copernicus Sentinel data 2023), CC BY-NC-SA 4.0", false),
-        }),
+      this.satelliteLabels = ImageryLayer.fromProviderAsync(
+        createWorldImageryAsync({ style: IonWorldImageryStyle.AERIAL_WITH_LABELS }),
       );
+      this.satelliteLabels.show = false;
+      layers.add(this.satelliteLabels);
+      // If Cesium ion can't be reached (bad venue Wi-Fi, DNS), fall back to Sentinel-2 so the globe still shows Earth.
+      this.satellite.errorEvent.addEventListener(() => {
+        const idx = layers.indexOf(this.satellite);
+        const fallback = new ImageryLayer(sentinel());
+        layers.add(fallback, Math.max(0, idx));
+        layers.remove(this.satellite, true);
+        this.satellite = fallback;
+        if (this.satelliteLabels) {
+          layers.remove(this.satelliteLabels, true);
+          this.satelliteLabels = null;
+        }
+        this.applyBase();
+      });
+    } else {
+      this.satellite = layers.addImageryProvider(sentinel());
     }
 
     const coast = layers.addImageryProvider(gibs("Coastlines_15m", "2020-01-01", "GoogleMapsCompatible_Level13", "png", 9));
@@ -154,6 +175,7 @@ export class GlobeController {
       const wantCity = this.photorealistic && this.buildingsWanted && this.base === "satellite" && h < BUILDINGS_BELOW;
       if (wantCity && !this.tileset && !this.tilesetLoading) void this.loadTileset();
       if (this.tileset) this.tileset.show = wantCity;
+      if (this.satelliteLabels) this.satelliteLabels.show = this.base === "satellite" && h < STREET_LABELS_BELOW;
     });
   }
 
@@ -241,7 +263,7 @@ export class GlobeController {
     const provider = await SingleTileImageryProvider.fromUrl(url, { rectangle: WORLD });
     if (token !== this.overlayToken) return;
     const layer = new ImageryLayer(provider, { alpha: 0 });
-    layers.add(layer, layers.indexOf(this.satellite) + 1);
+    layers.add(layer, layers.indexOf(this.satelliteLabels ?? this.satellite) + 1);
     const entry = { layer, fade: { v: 0 } };
     this.overlays.add(entry);
     this.overlay = entry;

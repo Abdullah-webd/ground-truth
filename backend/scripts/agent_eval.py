@@ -32,6 +32,10 @@ CASES = [
     {"q": "Has the land around Phoenix changed since 2018?", "tools": ["locate_place", "detect_change"]},
     {"q": "Is the Sahel getting more rain than before?", "tools": ["trend_in_region"], "variable": "rainfall"},
     {"q": "Is China greening?", "tools": ["trend_in_region"], "variable": "vegetation", "says": "green|increase"},
+    {"q": "Tell me the temperature range in Maiduguri, Nigeria over the last two years.", "tools": ["recent_history"],
+     "says": "45\\.6|10\\.7"},
+    {"q": "Was this year hotter than normal in Lagos?", "tools_any": ["recent_history", "now_vs_normal"],
+     "never": "API key|another dataset|different dataset|other tool"},
 ]
 
 SIGNIFICANT_CLAIM = re.compile(r"(?<!not )(?<!isn't )statistically significant", re.IGNORECASE)
@@ -60,6 +64,8 @@ def run_case(case: dict) -> dict:
     if "years" in case:
         checks["right_years"] = any(t["name"] == "detect_change" and [t["args"].get("year_a"), t["args"].get("year_b")] == case["years"]
                                     for t in tools)
+    if "never" in case:
+        checks["no_referral"] = not re.search(case["never"], answer, re.IGNORECASE)
     if "says" in case:
         checks["right_conclusion"] = bool(re.search(case["says"], answer, re.IGNORECASE))
     checks["numbers_from_tools"] = bool(done) and not done["unverified_numbers"]

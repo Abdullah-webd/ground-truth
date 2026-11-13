@@ -34,8 +34,15 @@ def _locate_ion(name: str) -> dict:
     if not features:
         raise PlaceNotFound(f"no place found for '{name}'")
     f = features[0]
-    lon, lat = f["geometry"]["coordinates"][:2]
-    bbox = f.get("bbox") or [lon - 0.1, lat - 0.1, lon + 0.1, lat + 0.1]
+    bbox = f.get("bbox")
+    coords = (f.get("geometry") or {}).get("coordinates")
+    if coords:
+        lon, lat = coords[:2]
+    elif bbox:  # Google results via ion carry a bounding box but no point: use its centre
+        lon, lat = (bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2
+    else:
+        raise PlaceNotFound(f"no location returned for '{name}'")
+    bbox = bbox or [lon - 0.1, lat - 0.1, lon + 0.1, lat + 0.1]
     props = f.get("properties", {})
     return {"name": props.get("label") or props.get("name") or name, "lat": float(lat), "lon": float(lon),
             "bbox": [float(v) for v in bbox], "type": props.get("layer"), "category": "place",
@@ -52,10 +59,13 @@ def locate(name: str) -> dict:
     if path.exists():
         return json.loads(path.read_text())
     if CESIUM_ION_TOKEN:
-        result = _locate_ion(name)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(result))
-        return result
+        try:
+            result = _locate_ion(name)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(result))
+            return result
+        except UpstreamError:
+            pass  # Cesium ion unreachable (e.g. flaky venue DNS): fall back to OpenStreetMap below
     global _last
     with _lock:
         wait = 1.0 - (time.time() - _last)

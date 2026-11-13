@@ -104,7 +104,8 @@ export class VoiceSession {
     switch (e.type) {
       case "input_audio_buffer.speech_started":
         this.transcript = "";
-        this.results = [];
+        // Keep earlier tool results: follow-up answers may cite numbers from previous questions.
+        if (this.results.length > 200) this.results = this.results.slice(-200);
         this.h.onUserSpeechStart();
         this.h.onState("listening");
         break;
