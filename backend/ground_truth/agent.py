@@ -186,7 +186,7 @@ def _run_tool(name: str, args: dict, st: TurnState) -> dict:
         if name == "live_events":
             r = fires(tuple(args["bbox"]), limit=5)
             st.ui.append({"action": "fires", "bbox": list(args["bbox"])})
-            return {"count": r["count"], "strongest": r["fires"], "note": r["note"]}
+            return {"count": r["count"], "strongest": r["fires"], "source": r["source"], "note": r["note"]}
 
         if name == "set_view":
             st.ui.append({"action": "view", "variable": args["variable"], "view": args["view"], "year": args.get("year")})
@@ -219,8 +219,18 @@ def _collect_numbers(obj, out: set[float]) -> None:
 NUMBER_IN_TEXT = re.compile(r"(?<![\w.])[-−+]?\d+(?:[.,]\d+)*(?:\.\d+)?")
 
 
+def _close(v: float, k: float) -> bool:
+    return abs(abs(v) - abs(k)) <= max(0.02 * abs(k), 0.0051)
+
+
 def unverified_numbers(text: str, known: set[float]) -> list[str]:
-    """Numbers in the answer that match no tool result (years, small counts and percentages of known shares excepted)."""
+    """Numbers in the answer that no tool result supports.
+
+    Accepted: a tool number (to 2 % or rounding), the same number as a percentage or in thousands or
+    millions, and the ratio of two tool numbers (e.g. "3.1 times faster"). Years and small whole
+    numbers are skipped. Anything else is flagged.
+    """
+    ks = [k for k in known if k != 0]
     flagged = []
     for tok in NUMBER_IN_TEXT.findall(text):
         raw = tok.replace("−", "-").replace(",", "")
@@ -230,9 +240,9 @@ def unverified_numbers(text: str, known: set[float]) -> list[str]:
             continue
         if 1900 <= abs(v) <= 2100 or abs(v) <= 10 and v == int(v):
             continue
-        ok = any(abs(v - k) <= max(0.02 * abs(k), 0.0051) or abs(v - k * 100) <= 0.6 or abs(abs(v) - abs(k)) <= max(0.02 * abs(k), 0.0051)
-                 for k in known)
-        if not ok:
+        direct = any(_close(v, k) or _close(v, k * 100) or _close(v, k / 1e3) or _close(v, k / 1e6) for k in ks)
+        ratio = not direct and any(_close(v, a / b) for a in ks for b in ks if a is not b and abs(b) > 1e-9)
+        if not (direct or ratio):
             flagged.append(tok)
     return flagged
 
@@ -265,8 +275,12 @@ def _trace(record: dict) -> None:
         f.write(json.dumps(record, default=str) + "\n")
 
 
-def run_turn(session_id: str, text: str, client_factory: Callable[[], OpenAI] | None = None) -> Iterator[dict]:
-    """Run one user turn. Yields events: status, ui, text, tool, error, done."""
+def run_turn(session_id: str, text: str, client_factory: Callable[[], OpenAI] | None = None,
+             include_results: bool = False) -> Iterator[dict]:
+    """Run one user turn. Yields events: status, ui, text, tool, error, done.
+
+    `include_results` adds each tool's full result to its `tool` event (for evals; not sent to browsers).
+    """
     text = text.strip()[:2000]
     if not text:
         yield {"type": "error", "message": "Ask a question first."}
@@ -354,8 +368,11 @@ def run_turn(session_id: str, text: str, client_factory: Callable[[], OpenAI] | 
                         yield {"type": "ui", **cmd}
                     tool_log.append({"name": fc.name, "args": args, "ms": round((time.perf_counter() - t_tool) * 1000),
                                      "error": result.get("error")})
-                    yield {"type": "tool", "id": fc.call_id, "name": fc.name, "ok": "error" not in result,
-                           "error": result.get("error")}
+                    tool_event = {"type": "tool", "id": fc.call_id, "name": fc.name, "ok": "error" not in result,
+                                  "error": result.get("error")}
+                    if include_results:
+                        tool_event.update(args=args, result=result)
+                    yield tool_event
                 _collect_numbers(result, st.numbers)
                 _collect_numbers(args, st.numbers)
                 outputs.append({"type": "function_call_output", "call_id": fc.call_id, "output": json.dumps(result)})
