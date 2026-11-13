@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import time
 import uuid
@@ -9,10 +10,11 @@ from typing import Annotated
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
 
-from . import checks, store
+from . import agent, checks, store
 from .change import ChangeError, detect_change
 from .config import DERIVED, FIRMS_MAP_KEY, OPENAI_API_KEY
 from .fires import fires
@@ -143,3 +145,20 @@ def place(q: Annotated[str, Query(min_length=1, max_length=200)]):
 @app.get("/api/checks")
 def science_checks():
     return _call(checks.all_checks)
+
+
+class Turn(BaseModel):
+    session_id: str = Field(min_length=6, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
+    text: str = Field(min_length=1, max_length=2000)
+
+
+@app.post("/api/agent/turn")
+def agent_turn(turn: Turn):
+    """Server-Sent Events: status, ui, tool, text, error and done events, one JSON object each."""
+
+    def events():
+        for ev in agent.run_turn(turn.session_id, turn.text):
+            yield f"event: {ev['type']}\ndata: {json.dumps(ev, default=str)}\n\n"
+
+    return StreamingResponse(events(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})

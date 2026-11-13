@@ -6,6 +6,7 @@ import { formatRate, shortPlace } from "../lib/format";
 import type { BBox } from "../lib/types";
 import { useVariables } from "../lib/useVariables";
 import { useApp } from "../state/store";
+import { AskPanel } from "./AskPanel";
 import { ErrorNote } from "./CaseFile";
 
 const YEARS = [2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025];
@@ -106,11 +107,13 @@ export function InvestigatePanel() {
       data-reveal
       data-intro="left"
       aria-label="Investigate"
-      className="scroll-thin pointer-events-auto absolute left-4 top-[68px] z-20 flex max-h-[calc(100%-180px)] w-[340px] flex-col gap-4 overflow-y-auto rounded-xl border border-line bg-panel p-4"
+      className="scroll-thin pointer-events-auto absolute left-4 top-[68px] z-20 flex max-h-[calc(100%-84px)] w-[360px] flex-col gap-4 overflow-y-auto rounded-xl border border-line bg-panel p-4"
     >
-      <form onSubmit={onSearch} className="flex flex-col gap-2">
+      <AskPanel />
+
+      <form onSubmit={onSearch} className="flex flex-col gap-2 border-t border-line pt-3">
         <label htmlFor="place-search" className="text-xs font-semibold uppercase tracking-wide text-muted">
-          Go to a place
+          Or go to a place
         </label>
         <div className="flex gap-2">
           <input

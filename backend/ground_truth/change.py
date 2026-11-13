@@ -7,6 +7,7 @@ Hotspots are connected areas whose score (averaged to 60 m) exceeds CHANGE_THRES
 
 from __future__ import annotations
 
+import concurrent.futures as cf
 import hashlib
 import json
 import logging
@@ -23,6 +24,8 @@ YEARS = (2017, 2025)
 MAX_SIDE_KM = 100.0
 CHANGE_THRESHOLD = 0.3
 HOTSPOT_SCALE_M = 60
+STATS_SCALE_M = 120   # area summaries: coarser is faster and changes nothing meaningful
+LABEL_SCALE_M = 60    # Dynamic World mode per hotspot
 MIN_HOTSPOT_KM2 = 0.05
 MAX_HOTSPOTS = 20
 VIS = {"min": 0.15, "max": 0.55, "palette": ["4a1a6b", "b5367a", "fb8761", "fcfdbf"]}  # shown only above 0.15
@@ -116,8 +119,8 @@ def detect_change(bbox, year_a: int, year_b: int) -> dict:
 
     stats = coarse.reduceRegion(
         reducer=ee.Reducer.percentile([50, 90, 99]).combine(ee.Reducer.mean(), sharedInputs=True),
-        geometry=region, scale=HOTSPOT_SCALE_M, maxPixels=1e9, bestEffort=True)
-    share = coarse.gt(CHANGE_THRESHOLD).reduceRegion(ee.Reducer.mean(), region, HOTSPOT_SCALE_M,
+        geometry=region, scale=STATS_SCALE_M, maxPixels=1e9, bestEffort=True)
+    share = coarse.gt(CHANGE_THRESHOLD).reduceRegion(ee.Reducer.mean(), region, STATS_SCALE_M,
                                                      maxPixels=1e9, bestEffort=True)
 
     hot = coarse.gt(CHANGE_THRESHOLD).selfMask()
@@ -130,12 +133,15 @@ def detect_change(bbox, year_a: int, year_b: int) -> dict:
     top = vectors.sort("weight", False).limit(MAX_HOTSPOTS)
 
     lc = _landcover(region, year_a).rename("from").addBands(_landcover(region, year_b).rename("to"))
-    labelled = lc.reduceRegions(collection=top, reducer=ee.Reducer.mode(), scale=30)
+    labelled = lc.reduceRegions(collection=top, reducer=ee.Reducer.mode(), scale=LABEL_SCALE_M)
     labelled = labelled.map(lambda f: f.setGeometry(f.geometry().simplify(30)).set(
         "centroid", f.geometry().centroid(10).coordinates()))
 
-    info = ee.Dictionary({"stats": stats, "share": share.get("change"),
-                          "hotspots": labelled.toList(MAX_HOTSPOTS)}).getInfo()
+    # The summary statistics and the labelled hotspots are independent: fetch them in parallel.
+    with cf.ThreadPoolExecutor(2) as pool:
+        summary = pool.submit(lambda: ee.Dictionary({"stats": stats, "share": share.get("change")}).getInfo())
+        spots = pool.submit(lambda: labelled.toList(MAX_HOTSPOTS).getInfo())
+        info = {**summary.result(), "hotspots": spots.result()}
 
     hotspots = []
     for k, f in enumerate(info["hotspots"], start=1):
