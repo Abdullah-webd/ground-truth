@@ -199,4 +199,11 @@ export interface Checks {
     false_alarm: Record<string, Record<string, number>>;
     power: Record<string, Record<string, number>>;
   } | null;
+  agent_eval: {
+    passed: number;
+    total: number;
+    median_seconds: number;
+    at: string;
+    cases: { question: string; passed: boolean; failed: string[] }[];
+  } | null;
 }

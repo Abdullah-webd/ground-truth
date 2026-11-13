@@ -13,7 +13,7 @@ interface Props {
 
 const W = 340;
 const H = 150;
-const PAD = { l: 40, r: 10, t: 12, b: 24 };
+const PAD = { l: 40, r: 18, t: 12, b: 24 };
 
 function niceTicks(min: number, max: number, count = 4) {
   const span = max - min || 1;

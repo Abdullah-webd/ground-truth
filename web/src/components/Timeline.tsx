@@ -5,6 +5,7 @@ import { Legend } from "./Legend";
 
 export function Timeline() {
   const { variable, mapView, setMapView, year, setYear, playing, setPlaying } = useApp();
+  const caseOpen = useApp((s) => s.selection != null);
   const meta = useVariables().data?.find((v) => v.id === variable);
   if (!meta) return null;
   const [y0, y1] = meta.years;
@@ -16,12 +17,16 @@ export function Timeline() {
     setMapView("year");
   };
 
+  // Sit in the gap between the left panel (360px) and the case file (380px) so nothing overlaps on laptops.
   return (
+    <div
+      className={`pointer-events-none absolute bottom-4 left-[392px] z-20 flex justify-center transition-[right] duration-300 ${caseOpen ? "right-[412px]" : "right-4"}`}
+    >
     <div
       data-reveal
       data-intro="bottom"
       data-section
-      className="pointer-events-auto absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-end gap-6 rounded-xl border border-line bg-panel px-5 py-3.5"
+      className="pointer-events-auto flex max-w-full flex-wrap items-end justify-center gap-x-6 gap-y-3 rounded-xl border border-line bg-panel px-5 py-3.5"
     >
       <div className="flex flex-col gap-2">
         <div role="tablist" aria-label="Map view" className="flex gap-1 rounded-lg border border-line bg-ground p-1 text-sm">
@@ -89,6 +94,7 @@ export function Timeline() {
       )}
 
       <Legend meta={meta} mode={mapView} />
+    </div>
     </div>
   );
 }

@@ -2,8 +2,15 @@ import { motion } from "motion/react";
 import { useVariables } from "../lib/useVariables";
 import { useApp } from "../state/store";
 
+const SHORT: Record<string, string> = {
+  temperature: "Temperature",
+  vegetation: "Vegetation",
+  rainfall: "Rainfall",
+  water: "Water",
+};
+
 const BASES = [
-  { id: "night", label: "Night lights", title: "NASA Black Marble: city lights at night" },
+  { id: "night", label: "Night", title: "NASA Black Marble: city lights at night" },
   { id: "day", label: "Blue Marble", title: "NASA Blue Marble: shaded relief and bathymetry" },
   { id: "satellite", label: "Sentinel-2", title: "Sentinel-2 cloudless 2023, 10 m: best for close-up change" },
 ] as const;
@@ -20,8 +27,8 @@ export function TopBar() {
       className="pointer-events-auto absolute inset-x-0 top-0 z-20 flex items-center gap-6 border-b border-line bg-ground/95 px-5 py-2.5"
     >
       <div className="flex items-baseline gap-3">
-        <span className="atlas text-[26px] text-ink">Ground Truth</span>
-        <span className="hidden text-xs text-muted lg:inline">Earth System Trend Detective</span>
+        <span className="atlas whitespace-nowrap text-[26px] text-ink">Ground Truth</span>
+        <span className="hidden whitespace-nowrap text-xs text-muted min-[1500px]:inline">Earth System Trend Detective</span>
       </div>
 
       <nav aria-label="Variable" className="flex items-center gap-1 rounded-lg border border-line bg-panel p-1">
@@ -31,7 +38,7 @@ export function TopBar() {
             type="button"
             onClick={() => setVariable(v.id)}
             aria-pressed={variable === v.id}
-            className={`btn relative rounded-md px-3 py-1.5 text-sm ${variable === v.id ? "text-accent-ink" : "btn-quiet text-muted"}`}
+            className={`btn relative rounded-md whitespace-nowrap px-3 py-1.5 text-sm ${variable === v.id ? "text-accent-ink" : "btn-quiet text-muted"}`}
           >
             {variable === v.id && (
               <motion.span
@@ -40,7 +47,8 @@ export function TopBar() {
                 transition={{ type: "spring", duration: 0.35, bounce: 0.1 }}
               />
             )}
-            <span className="relative font-medium">{v.label}</span>
+            <span className="relative hidden whitespace-nowrap font-medium min-[1500px]:inline">{v.label}</span>
+            <span className="relative whitespace-nowrap font-medium min-[1500px]:hidden">{SHORT[v.id] ?? v.label}</span>
           </button>
         ))}
       </nav>
@@ -58,7 +66,7 @@ export function TopBar() {
               className={`btn relative rounded-md px-2.5 py-1 ${base === b.id ? "text-ink" : "btn-quiet text-muted"}`}
             >
               {base === b.id && <motion.span layoutId="base-pill" className="absolute inset-0 rounded-md bg-panel-2" transition={{ duration: 0.25 }} />}
-              <span className="relative">{b.label}</span>
+              <span className="relative whitespace-nowrap">{b.label}</span>
             </button>
           ))}
         </div>
@@ -66,7 +74,7 @@ export function TopBar() {
           type="button"
           onClick={toggleFires}
           aria-pressed={showFires}
-          className={`btn rounded-md border px-3 py-1.5 text-sm ${
+          className={`btn rounded-md border whitespace-nowrap px-3 py-1.5 text-sm ${
             showFires ? "border-[#ff8c3a] text-[#ffb347]" : "btn-quiet border-line text-muted"
           }`}
           title="NASA FIRMS active fires, last 24 hours"
@@ -76,7 +84,7 @@ export function TopBar() {
         <button
           type="button"
           onClick={() => setChecksOpen(true)}
-          className="btn btn-quiet rounded-md border border-line px-3 py-1.5 text-sm text-ink"
+          className="btn btn-quiet whitespace-nowrap rounded-md border border-line px-3 py-1.5 text-sm text-ink"
         >
           How we test
         </button>

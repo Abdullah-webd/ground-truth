@@ -86,4 +86,12 @@ def all_checks() -> dict:
     out["global_temperature"] = json.loads(g.read_text()) if g.exists() else None
     t = folder / "trend_tests.json"
     out["trend_tests"] = json.loads(t.read_text()) if t.exists() else None
+    a = folder / "agent_eval.json"
+    if a.exists():
+        ev = json.loads(a.read_text())
+        out["agent_eval"] = {k: ev[k] for k in ("passed", "total", "median_seconds", "at")} | {
+            "cases": [{"question": r["question"], "passed": r["passed"],
+                       "failed": [k for k, v in r["checks"].items() if not v]} for r in ev["results"]]}
+    else:
+        out["agent_eval"] = None
     return out

@@ -110,6 +110,24 @@ export function ChecksView() {
                     </div>
                   </>
                 )}
+                {d.agent_eval && (
+                  <>
+                    <h3 className="mt-8 text-sm font-semibold uppercase tracking-wide text-muted">Is the analyst honest?</h3>
+                    <p className="mt-2 max-w-[70ch] text-sm text-muted">
+                      {d.agent_eval.passed} of {d.agent_eval.total} test questions passed every check: right tools, every number
+                      traceable to the data, "significant" only when the test says so, no errors. Median answer time{" "}
+                      {d.agent_eval.median_seconds} s.
+                    </p>
+                    <ul className="mt-3 grid grid-cols-1 gap-1 text-sm md:grid-cols-2">
+                      {d.agent_eval.cases.map((c) => (
+                        <li key={c.question} className="flex items-start gap-2">
+                          <span className={`mt-0.5 text-xs font-semibold ${c.passed ? "text-ok" : "text-bad"}`}>{c.passed ? "PASS" : "FAIL"}</span>
+                          <span className="text-muted">{c.question}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
                 <p className="mt-6 text-xs text-faint">
                   Full method and references: docs/methods.md in the project repository.
                 </p>

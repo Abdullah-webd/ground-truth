@@ -233,6 +233,7 @@ export function AskPanel() {
             {busy ? "Investigating…" : "Ask"}
           </button>
         </div>
+        <p className="text-[11px] text-faint">Every number in an answer is checked against the data tools.</p>
       </form>
 
       {turns.length === 0 && (

@@ -9,7 +9,7 @@ export function Legend({ meta, mode }: { meta: VariableMeta; mode: "trend" | "ye
   const scale = mode === "trend" ? meta.legend.significance : meta.legend.frames;
   const gradient = `linear-gradient(to right, ${meta.palette.join(", ")})`;
   return (
-    <div className="w-[260px]">
+    <div className="w-[240px]">
       <div className="mb-1.5 flex items-baseline justify-between text-xs text-muted">
         <span>
           {mode === "trend" ? "Trend" : "Departure from"}{" "}

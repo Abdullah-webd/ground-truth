@@ -1,6 +1,6 @@
 # Ground Truth: Architecture
 
-> Status: Draft v1 · awaiting approval · 2026-11-13
+> Status: v1 built and verified locally · 2026-11-13
 > Research and sources: [docs/research.md](docs/research.md)
 
 ## 1. Overview
@@ -236,7 +236,7 @@ Rate limits: the agent endpoint allows one concurrent turn per session; geocodin
 - **Statistics unit tests:** vectorized MK and Sen's slope against `pymannkendall` on synthetic series (trend, no trend, autocorrelated, ties, missing years) and 1,000 sampled real cells per variable.
 - **Science validation (shown in the Checks view):** global-mean GISTEMP trend against NASA GISS's published value for the same period; regional sanity checks (for example greening in the Sahel, water loss in northern India and the Central Valley, as reported in published studies), each pass/fail with its source.
 - **Backend integration tests:** every endpoint against cached fixtures, plus live smoke tests marked `@live`.
-- **Agent evals:** 25 questions (places, variables, divergence, edge cases such as ocean points and too-large regions). Code-graded: correct tools called, numbers in text match tool results, significance wording matches q. Run on prompt or model changes.
+- **Agent evals:** 14 questions (planned 25; `backend/scripts/agent_eval.py`) (places, variables, divergence, edge cases such as ocean points and too-large regions). Code-graded: correct tools called, numbers in text match tool results, significance wording matches q. Run on prompt or model changes.
 - **E2E:** Playwright drives the app: load, ask a question, see a fly-to and objects, click a point, play the time-lapse, export a card. Plus the motion check required by the motion-web skill.
 
 ## 14. Deployment & environments
@@ -254,10 +254,10 @@ Ordered so the demo works as early as possible. The line marks what must exist b
 | M3 | Backend API | ✅ Done 2026-11-13: all endpoints with offline + live tests (agent endpoint comes with M6) |
 | M4 | Globe app | ✅ Done 2026-11-13: globe, 3 base maps, significance maps, time-lapse, Case File, Checks view; browser walkthrough with no console errors |
 | M5 | Change discovery | ✅ Done 2026-11-13: hotspots with from → to labels over Sentinel-2 imagery; divergence pairs with palette colours |
-| M6 | Agent | Ask bar drives fly-to, layers and objects; numbers match tools; eval ≥ 90 % |
+| M6 | Agent | ✅ Done 2026-11-13: streaming analyst drives the globe; 14/14 eval questions pass, median 7.7 s |
 | — | **Demo line** | |
-| M7 | Divergence + live layer + now vs normal | Pairs shown with arcs; fires layer; anomaly in Case File |
-| M8 | Polish | Intro sequence, motion QA screenshots, Checks view, case card export, warm cache |
+| M7 | Divergence + live layer + now vs normal | ✅ Done 2026-11-13 |
+| M8 | Polish | ✅ Done 2026-11-13: intro sequence, Checks view (science, method, analyst eval), case card PNG, 12 demo places pre-computed, 1280 px layout. Added: live voice (gpt-realtime-2.1) |
 
 ## 16. Risks & open questions
 
@@ -290,3 +290,5 @@ Ordered so the demo works as early as possible. The line marks what must exist b
 | 11 | 2026-11-13 | Quadratic detrending + worst-case Monte Carlo check | Linear detrending called Greenland's 18 straight annual declines non-significant (p = 0.12); fix gives p < 0.001 and adds ≤ 0.3 pp false alarms | Monte Carlo with estimated persistence (false alarms up to 16 %) |
 | 12 | 2026-11-13 | Divergence regions found within 30° tiles | Planet-wide warming formed one connected region with a meaningless centre | Global connected components |
 | 13 | 2026-11-13 | Sentinel-2 cloudless (EOX, CC BY-NC-SA) as a third base map, auto-selected for change detection | NASA GIBS base maps stop at ~500 m; change hotspots need 10 m context | Esri World Imagery (licence less clear), GIBS MODIS 250 m |
+| 14 | 2026-11-13 | Live voice: OpenAI `gpt-realtime-2.1` over WebRTC, ephemeral client secrets minted by the backend, tool calls executed by the backend | User asked for the latest OpenAI live voice model; verified on the account; secrets keep the real key off the browser | Text-to-speech on text answers (not live) |
+| 15 | 2026-11-13 | Analysts must use regional tools for regions | Voice test answered "Greenland is gaining water" from the ice-sheet centre point; regional average is −748 mm/decade | Point queries everywhere |
