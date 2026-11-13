@@ -52,13 +52,13 @@ Gut-check results (2026-11-13):
 ## 5. Stack versions (npm / PyPI, 2026-11-13)
 
 cesium 1.147.0 · resium 1.28.0 · react 19.3.1 · vite 8.3.8 · tailwindcss 4.3.5 · gsap 3.15.1 · motion 14.13.0 · zustand 5.1.0 · @tanstack/react-query 5.107.1
-fastapi 0.162.5 · uvicorn 0.54.0 · anthropic 2.8.0 · earthengine-api (installed) · xarray 2026.9.0 · netCDF4 1.7.5 · pymannkendall 1.4.3 · Python 3.12.14 · Node 24.19.0
+fastapi 0.162.5 · uvicorn 0.54.0 · openai 3.50.0 · earthengine-api (installed) · xarray 2026.9.0 · netCDF4 1.7.5 · pymannkendall 1.4.3 · Python 3.12.14 · Node 24.19.0
 
-## 6. Claude API
+## 6. Agent model (OpenAI)
 
-- Model: `claude-opus-5-5` (default for this project). Thinking is always on; control depth with `output_config.effort`. Forced `tool_choice` returns 400, so use `auto` plus `strict: true` tools. Include server-side `fallbacks: "default"` with beta `server-side-fallback-2026-07-01`.
-- Agent loop: Python SDK tool runner (`client.beta.messages.tool_runner`), streaming to the browser over Server-Sent Events.
-- No Anthropic API key is configured on this machine yet.
+- Model: `gpt-5.6-terra` (user's choice; listed on the account alongside `gpt-5.6-luna`, `gpt-5.6-sol`, `gpt-5.5`).
+- Responses API function calling with `strict: true` schemas, verified live: without instructions the model answered from memory in 12.9 s and called no tool; with analyst instructions it called `locate_place("Lagos, Nigeria")` in 4.8 s (effort low) and 2.4 s (effort medium).
+- Key stored in `.env` as `OPENAI_API_KEY`.
 
 ## 7. Pitfalls found
 

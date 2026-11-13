@@ -39,7 +39,7 @@
 
 **Out of scope (later).** Accounts and sharing, deployment to a public URL, voice input, sea ice (NSIDC; optional fifth variable if time allows), sub-annual change detection with raw Sentinel-2, forecasting, causal attribution.
 
-**Constraints.** Runs locally only; no GitHub push (user decision). Hackathon window 14–15 Nov 2026. Free data only. Claude API is the only paid service.
+**Constraints.** Runs locally only; no GitHub push (user decision). Hackathon window 14–15 Nov 2026. Free data only. The OpenAI API is the only paid service ($50 credit available).
 
 ## 3. Requirements
 
@@ -60,7 +60,7 @@
 - Latency: cached point queries < 300 ms; change detection < 10 s for a 60 km region; first agent token < 3 s.
 - Honesty: every number shown in the UI comes from a tool result. The agent may explain numbers but never invent them (enforced in §7).
 - Accessibility: keyboard reachable controls, visible focus, `prefers-reduced-motion` honoured, colour scales readable for colour-blind viewers (diverging blue–orange, not red–green).
-- Cost ceiling: < $0.15 per agent question on average (a 6-tool turn resends ~30k input tokens; prompt caching cuts most of that); hard cap per turn (§7).
+- Cost ceiling: < $0.15 per agent question on average, measured during evals; hard cap per turn (§7).
 - Security: keys only in `.env`, never sent to the browser.
 
 ## 4. System context
@@ -69,7 +69,7 @@
 flowchart LR
   U[User / judge] --> FE[Web app<br/>React + CesiumJS]
   FE -- REST + SSE --> BE[Backend<br/>FastAPI]
-  BE --> AG[Agent<br/>Claude Opus 5.5 tool loop]
+  BE --> AG[Agent<br/>GPT-5.6 Terra tool loop]
   AG -- tool calls --> SVC[Analysis services]
   SVC --> EE[(Google Earth Engine<br/>AlphaEarth, Dynamic World,<br/>MODIS, IMERG, GRACE)]
   SVC --> TR[(Trend store<br/>precomputed grids)]
@@ -97,7 +97,7 @@ flowchart LR
 | Motion | GSAP (+ SplitText) and Motion | 3.15 / 14.13 | Intro choreography with GSAP, panel transitions with Motion; per the global motion rules | — |
 | State | Zustand + TanStack Query | 5.1 / 5.107 | Small global UI store; cached server queries | Redux (heavier) |
 | Backend | FastAPI + Uvicorn | 0.162 / 0.54 | Async Python, SSE support, same language as Earth Engine and statistics | Node backend (would split the data stack) |
-| Agent | Anthropic Python SDK, tool runner | 2.8 | Model-driven tool use with per-turn hooks for limits and UI events | Managed Agents (we need local tools and UI streaming), Agent SDK (built for coding agents) |
+| Agent | OpenAI Python SDK, Responses API with our own tool loop | 3.50 | Function calling with strict schemas; our loop enforces limits and emits UI events (ADR-9) | Claude API (no credit on the account), Agents SDK (more than we need) |
 | Earth data | earthengine-api | installed | AlphaEarth and NASA collections without downloading planet-scale files | Raw Earthdata downloads (too slow for a weekend) |
 | Stats | NumPy (vectorized MK), pymannkendall (reference) | 1.4.3 | Fast whole-grid computation, validated against the reference library | statsmodels only (no MK) |
 | Gridded IO | xarray + netCDF4 | 2026.9 / 1.7.5 | Read GISTEMP NetCDF | — |
@@ -117,7 +117,7 @@ flowchart LR
 
 **Pattern: a single agent loop with tools,** with hard step and cost limits. One question needs a short, mostly sequential chain of tool calls on shared context (place → change → trends → answer), so multi-agent would multiply cost without benefit. Parallel tool calls are allowed within a turn (for example two `trend_at_point` calls).
 
-**Model.** `claude-opus-5-5`, `thinking: adaptive`, `output_config.effort: "medium"`, streaming, `fallbacks: "default"` (beta `server-side-fallback-2026-07-01`). Effort will be tuned against the eval set (§13), measuring quality per completed question.
+**Model.** OpenAI `gpt-5.6-terra` through the Responses API, `reasoning.effort: "low"` to start, streaming, strict function schemas, conversation carried with `previous_response_id`. Verified 2026-11-13: with instructions it calls the right tool in 2–5 s; without instructions it answered from memory instead of calling tools, so the system instructions are mandatory. Effort will be tuned against the eval set (§13), measuring quality per completed question. Fallback model if Terra is slow or unavailable: `gpt-5.5`.
 
 **Tools (all `strict: true`, typed schemas, compact JSON results).**
 
@@ -149,7 +149,7 @@ flowchart LR
 sequenceDiagram
   participant B as Browser
   participant S as FastAPI
-  participant C as Claude
+  participant C as GPT-5.6 Terra
   participant T as Tools
   B->>S: POST /api/agent/turn {session, text}
   S->>C: messages + tools (stream)
@@ -206,7 +206,7 @@ Rate limits: the agent endpoint allows one concurrent turn per session; geocodin
 
 ## 10. Key flows
 
-**Ask about a place** (sequence diagram in §7). Failure paths: geocoder finds nothing → agent asks for a more specific place; Earth Engine timeout → tool error, agent says so and offers a smaller area; no Anthropic key → Ask bar shows "Agent unavailable: add ANTHROPIC_API_KEY", everything else works.
+**Ask about a place** (sequence diagram in §7). Failure paths: geocoder finds nothing → agent asks for a more specific place; Earth Engine timeout → tool error, agent says so and offers a smaller area; no OpenAI key → Ask bar shows "Agent unavailable: add OPENAI_API_KEY", everything else works.
 
 **Click anywhere.** Browser picks lat/lon → `GET /api/trend/point` for the active variable plus `GET /api/now` → Case File renders series, slope, p-value, verdict, anomaly. Ocean click on a land-only variable → "No data here (land-only variable)".
 
@@ -218,7 +218,7 @@ Rate limits: the agent endpoint allows one concurrent turn per session; geocodin
 
 ## 11. Security & privacy
 
-- Secrets in `.env` (git-ignored, mode 600): `ANTHROPIC_API_KEY`, `FIRMS_MAP_KEY`, `EE_PROJECT`, optional `EARTHDATA_TOKEN`. The browser never sees them; FIRMS and Earth Engine are proxied by the backend. Earth Engine tile URLs are short-lived tokens scoped to one map.
+- Secrets in `.env` (git-ignored, mode 600): `OPENAI_API_KEY`, `FIRMS_MAP_KEY`, `EE_PROJECT`, optional `EARTHDATA_TOKEN`. The browser never sees them; FIRMS and Earth Engine are proxied by the backend. Earth Engine tile URLs are short-lived tokens scoped to one map.
 - Earth Engine authenticates with the user's local credentials from `earthengine authenticate` (done in their own terminal).
 - The backend binds to `127.0.0.1` only, and CORS allows only the local web app origin.
 - Threats: prompt injection via place names (mitigated: read-only tools, data-only treatment); runaway cost (per-turn limits, §7); upstream abuse (caching, throttling).
@@ -229,7 +229,7 @@ Rate limits: the agent endpoint allows one concurrent turn per session; geocodin
 - Timeouts: Earth Engine 30 s, POWER 20 s, FIRMS 15 s, Nominatim 10 s; one retry with backoff on network errors.
 - Caching makes repeat demo questions instant; a `make warm` step pre-runs the demo questions.
 - Structured JSON logs per request; per agent turn we log tool calls, latency, tokens, and cost to `data/cache/traces.jsonl`.
-- `/api/health` reports Earth Engine, POWER, FIRMS, and Claude reachability.
+- `/api/health` reports Earth Engine, POWER, FIRMS, and OpenAI reachability.
 
 ## 13. Testing strategy
 
@@ -241,7 +241,7 @@ Rate limits: the agent endpoint allows one concurrent turn per session; geocodin
 
 ## 14. Deployment & environments
 
-Local only. `make setup` (Python venv + npm install), `make pipeline` (builds the trend store, ~20–40 min once), `make dev` (backend on :8000, web on :5173), `make test`, `make warm`. Environment variables: see `.env.example`. Cost: Earth Engine noncommercial (free), NASA services free, Claude API roughly $0.05–0.15 per question at medium effort (measured during evals and reported).
+Local only. `make setup` (Python venv + npm install), `make pipeline` (builds the trend store, ~20–40 min once), `make dev` (backend on :8000, web on :5173), `make test`, `make warm`. Environment variables: see `.env.example`. Cost: Earth Engine noncommercial (free), NASA services free, OpenAI API cost per question measured during evals and reported (measured during evals and reported).
 
 ## 15. Milestones
 
@@ -265,11 +265,11 @@ Ordered so the demo works as early as possible. The line marks what must exist b
 - Pipeline time: global Earth Engine exports may be slow. Mitigation: 0.5° grid, one year per request, cached, run overnight if needed.
 - Change detection on large regions is slow at 10 m. Mitigation: cap at 100 km, compute hotspots at 30–60 m scale.
 - Dynamic World labels can be noisy for a single year. Mitigation: use the most frequent label across the whole year.
-- Agent latency on Opus 5.5. Mitigation: medium effort, streaming, UI actions sent before the prose finishes.
+- Agent latency (13 s on a first untuned call). Mitigation: low effort, streaming, UI actions sent before the prose finishes.
 - Scope versus a two-day event. Mitigation: the demo line in §15.
 
 **Open questions for you.**
-1. **Claude API key.** None is set up on this machine. The agent needs one in `.env` (`ANTHROPIC_API_KEY`). Can you create one at console.anthropic.com?
+1. ~~AI key~~ Resolved: OpenAI key in `.env`, model `gpt-5.6-terra` verified.
 2. **Hackathon rules on prior work.** Can code written before the event starts be submitted? If not, today's work should stay limited to planning and data checks.
 3. **Vite instead of Next.js** (ADR-3). OK?
 
@@ -285,3 +285,4 @@ Ordered so the demo works as early as possible. The line marks what must exist b
 | 6 | 2026-11-13 | Dynamic World for from → to labels | Annual land-cover labels since 2015 at 10 m, already in Earth Engine | Classify embeddings ourselves |
 | 7 | 2026-11-13 | Keyless imagery (GIBS) instead of Cesium ion | No extra account, NASA imagery fits the story | Cesium ion token |
 | 8 | 2026-11-13 | 0.5° grid for NDVI, rainfall and water; native 2° for GISTEMP | Comparable maps at a manageable size (~260k cells) without inventing temperature detail | One common grid for all |
+| 9 | 2026-11-13 | OpenAI `gpt-5.6-terra` for the agent instead of Claude | User has OpenAI credit; model verified on the account with working tool calls | Claude Opus 5.5, Gemini free tier |
