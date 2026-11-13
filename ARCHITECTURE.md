@@ -249,9 +249,9 @@ Ordered so the demo works as early as possible. The line marks what must exist b
 
 | # | Milestone | Acceptance criteria |
 |---|---|---|
-| M1 | Statistics core | ✅ Done 2026-11-13: vectorized MK + correction + Theil-Sen + FDR; 19 tests pass; false alarms 2.7–6.5 %, power 73–100 % |
-| M2 | Pipeline: 4 variables | Trend store built; GISTEMP global-mean check passes; overlays look right |
-| M3 | Backend API | All endpoints return correct data with tests; `/api/health` green |
+| M1 | Statistics core | ✅ Done 2026-11-13: false alarms 3.2–7.9 %, power 63–100 % (docs/methods.md) |
+| M2 | Pipeline: 4 variables | ✅ Done 2026-11-13: 4 stores built; GISTEMP check +0.210 vs +0.207 °C/decade; 5/5 regional checks pass |
+| M3 | Backend API | ✅ Done 2026-11-13: all endpoints with offline + live tests (agent endpoint comes with M6) |
 | M4 | Globe app | Dark console UI, layers, significance maps, click-anywhere Case File, time-lapse |
 | M5 | Change discovery | Hotspots with from → to labels on the globe for any region |
 | M6 | Agent | Ask bar drives fly-to, layers and objects; numbers match tools; eval ≥ 90 % |
@@ -287,3 +287,5 @@ Ordered so the demo works as early as possible. The line marks what must exist b
 | 8 | 2026-11-13 | 0.5° grid for NDVI, rainfall and water; native 2° for GISTEMP | Comparable maps at a manageable size (~260k cells) without inventing temperature detail | One common grid for all |
 | 9 | 2026-11-13 | OpenAI `gpt-5.6-terra` for the agent instead of Claude | User has OpenAI credit; model verified on the account with working tool calls | Claude Opus 5.5, Gemini free tier |
 | 10 | 2026-11-13 | Bias-corrected AR(1) variance correction instead of Hamed-Rao | Simulation: Hamed-Rao gave 7–22 % false alarms on 21–45 year records; ours 2.7–6.5 % with 73–100 % power (docs/methods.md) | Hamed-Rao, pre-whitening (well calibrated but misses 24–73 % of strong trends) |
+| 11 | 2026-11-13 | Quadratic detrending + worst-case Monte Carlo check | Linear detrending called Greenland's 18 straight annual declines non-significant (p = 0.12); fix gives p < 0.001 and adds ≤ 0.3 pp false alarms | Monte Carlo with estimated persistence (false alarms up to 16 %) |
+| 12 | 2026-11-13 | Divergence regions found within 30° tiles | Planet-wide warming formed one connected region with a meaningless centre | Global connected components |

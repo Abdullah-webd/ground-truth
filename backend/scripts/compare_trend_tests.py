@@ -20,12 +20,13 @@ SEED = 7
 REPS = 1500
 
 
-def ar1(rng, rows, n, phi, sd=1.0):
-    x = np.zeros((rows, n))
-    e = rng.normal(0, sd, (rows, n))
-    for k in range(1, n):
+def ar1(rng, rows, n, phi, sd=1.0, burn=60):
+    """Stationary AR(1) noise: burn-in so each series starts at its long-run variance."""
+    e = rng.normal(0, sd, (rows, n + burn))
+    x = np.zeros_like(e)
+    for k in range(1, n + burn):
         x[:, k] = phi * x[:, k - 1] + e[:, k]
-    return x
+    return x[:, burn:]
 
 
 def rate(fn, data):
@@ -44,15 +45,20 @@ def main() -> None:
         "Hamed-Rao (all lags)": lambda r: mk.hamed_rao_modification_test(r).p,
         "Pre-whitening (von Storch)": lambda r: mk.pre_whitening_modification_test(r).p,
         "Trend-free pre-whitening (Yue)": lambda r: mk.trend_free_pre_whitening_modification_test(r).p,
-        "Ours: bias-corrected variance correction": None,
+        "Ours (variance correction + worst-case check)": None,
     }
     null_cases = {f"n={n}, AR(1) phi={phi}": ar1(rng, REPS, n, phi)
-                  for n in (25, 45) for phi in (0.0, 0.3, 0.6)}
+                  for n in (18, 25, 45) for phi in (0.0, 0.3, 0.6)}
     power_cases = {
         "Global-temperature-like (45 yr, 0.2/decade, sd 0.1)": 0.02 * np.arange(45) + rng.normal(0, .1, (REPS, 45)),
         "Strong (25 yr, 0.5/decade, sd 0.1)": 0.05 * np.arange(25) + rng.normal(0, .1, (REPS, 25)),
         "Moderate (25 yr, 0.3/decade, sd 0.3)": 0.03 * np.arange(25) + rng.normal(0, .3, (REPS, 25)),
         "Trend + autocorrelated noise (25 yr, AR 0.4)": 0.04 * np.arange(25) + ar1(rng, REPS, 25, .4, .3),
+        "Accelerating decline (18 yr, Greenland-like)":
+            -(20 * np.arange(18) + 2.0 * np.arange(18) ** 2) + rng.normal(0, 20, (REPS, 18)),
+        "Rise then flatten (18 yr, S-curve)":
+            400 * np.tanh((np.arange(18) - 6) / 4) + rng.normal(0, 25, (REPS, 18)),
+        "Step change (25 yr)": np.where(np.arange(25) > 12, 1.0, 0) + rng.normal(0, .5, (REPS, 25)),
     }
     result = {"alpha": 0.05, "replicates": REPS, "seed": SEED, "false_alarm": {}, "power": {}}
     for name, fn in methods.items():

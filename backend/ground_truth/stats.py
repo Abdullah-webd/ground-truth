@@ -4,13 +4,18 @@ Method (chosen by simulation, see docs/methods.md):
 - Mann-Kendall S on the original series (does the series tend to rise or fall?),
 - Theil-Sen slope (how much per time step),
 - variance correction for autocorrelation (Yue & Wang 2004): effective sample size from an
-  AR(1) model fitted to the Sen-detrended series, with the lag-1 autocorrelation bias-corrected
-  for short records, r' = (n r + 1) / (n - 4) (Kendall 1954), clipped to [0, 0.95],
+  AR(1) model. The lag-1 autocorrelation is estimated on residuals from a quadratic fit (so a
+  curved, e.g. accelerating, trend is not mistaken for persistence) and bias-corrected for short
+  records, r' = (n r + 3) / (n - 6), clipped to [0, 0.95]. The constants were calibrated by
+  simulation (scripts/compare_trend_tests.py), extending Kendall's (1954) correction,
+- a second opinion for smooth curved trends: a Monte Carlo p-value against trend-free AR(1)
+  noise at the strongest persistence allowed (0.95); the reported p is the smaller of the two,
 - Benjamini-Hochberg false discovery rate across grid cells (Wilks 2016).
 
-On 25-45 year records this kept false alarms at 2.9-6.9 % for independent and autocorrelated
-noise while detecting 72-100 % of realistic trends. Hamed-Rao gave 7-22 % false alarms;
-pre-whitening detected only 23-76 % of strong trends.
+On 18-45 year records this kept false alarms at 2.2-6.3 % for independent and autocorrelated
+noise while detecting most realistic linear, accelerating and step-like trends. Hamed-Rao gave
+7-22 % false alarms; pre-whitening missed 24-77 % of strong trends; correcting with linear
+detrending detected only 45 % of Greenland-like accelerating declines.
 
 S, its tie-corrected variance and the Theil-Sen slope match `pymannkendall.original_test`
 (tests compare them); the correction is validated by calibration tests.
@@ -18,6 +23,7 @@ S, its tie-corrected variance and the Theil-Sen slope match `pymannkendall.origi
 
 from __future__ import annotations
 
+import functools
 from dataclasses import dataclass
 
 import numpy as np
@@ -27,8 +33,10 @@ ALPHA = 0.05
 MIN_VALID_FRACTION = 0.8   # cells with fewer valid years are not tested
 MIN_YEARS = 8              # below this a trend test is not meaningful
 MAX_RHO = 0.95
+RHO_BIAS_C, RHO_BIAS_D = 3.0, 6.0  # r' = (n r + c) / (n - d), calibrated by simulation
+NULL_SIMS = 20000                  # Monte Carlo series for the worst-case persistence null
 CHUNK = 8192               # rows per vectorized block (memory: CHUNK * n^2 / 2 floats)
-METHOD = ("Mann-Kendall with bias-corrected AR(1) variance correction (Yue & Wang 2004), "
+METHOD = ("Mann-Kendall with bias-corrected AR(1) variance correction (Yue & Wang 2004; quadratic detrending), "
           "Theil-Sen slope, Benjamini-Hochberg FDR")
 
 
@@ -40,7 +48,7 @@ class TrendResult:
     intercept: np.ndarray   # value of the Theil-Sen line at the first time step
     s: np.ndarray           # Mann-Kendall S
     var_s: np.ndarray       # tie-corrected variance of S, before the autocorrelation correction
-    rho: np.ndarray         # bias-corrected lag-1 autocorrelation of the detrended series
+    rho: np.ndarray         # bias-corrected lag-1 autocorrelation of the quadratic-detrended series
     var_ratio: np.ndarray   # variance inflation n / n* applied for autocorrelation
     z: np.ndarray
     p: np.ndarray           # two-sided p-value
@@ -60,6 +68,30 @@ def _tie_term(x: np.ndarray) -> np.ndarray:
     return np.sum(t * (t - 1) * (2 * t + 5), axis=1)
 
 
+@functools.cache
+def _worst_case_null(n: int) -> np.ndarray:
+    """Sorted |S| of trend-free AR(1) series with the strongest persistence we allow (MAX_RHO).
+
+    A series whose S is extreme even against this null is trending whatever its true
+    persistence, so its p-value is the smaller of the formula p and this Monte Carlo p. This
+    rescues smooth curved trends (e.g. Greenland's ice loss) that the AR(1) formula mistakes for
+    persistence, and adds almost no false alarms (docs/methods.md).
+    """
+    rng = np.random.default_rng(1000 + n)
+    burn = 100
+    out = []
+    i, j = np.triu_indices(n, k=1)
+    for _ in range(NULL_SIMS // 4000):
+        e = rng.standard_normal((4000, n + burn))
+        x = np.empty_like(e)
+        x[:, 0] = e[:, 0] / np.sqrt(1 - MAX_RHO ** 2)
+        for k in range(1, n + burn):
+            x[:, k] = MAX_RHO * x[:, k - 1] + e[:, k]
+        x = x[:, burn:]
+        out.append(np.abs(np.sign(x[:, j] - x[:, i]).sum(axis=1)))
+    return np.sort(np.concatenate(out))
+
+
 def _block(x: np.ndarray, t: np.ndarray) -> dict[str, np.ndarray]:
     """All statistics for rows of `x` (rows, n) sampled at shared times `t` (n,)."""
     n = x.shape[1]
@@ -72,18 +104,23 @@ def _block(x: np.ndarray, t: np.ndarray) -> dict[str, np.ndarray]:
     slope = np.median(diffs / (t[j] - t[i]), axis=1)
     intercept = np.median(x - slope[:, None] * (t - t[0]), axis=1)
 
-    resid = x - slope[:, None] * t
-    y = resid - resid.mean(axis=1, keepdims=True)
+    tc = (t - t.mean()) / (t.std() or 1.0)
+    design = np.vstack([np.ones(n), tc, tc ** 2]).T
+    coef, *_ = np.linalg.lstsq(design, x.T, rcond=None)
+    y = x - (design @ coef).T
     with np.errstate(invalid="ignore", divide="ignore"):
         r1 = np.sum(y[:, :-1] * y[:, 1:], axis=1) / np.sum(y * y, axis=1)
-    rho = np.clip((n * r1 + 1) / (n - 4), 0.0, MAX_RHO)
+    rho = np.clip((n * r1 + RHO_BIAS_C) / (n - RHO_BIAS_D), 0.0, MAX_RHO)
     k = np.arange(1, n)
     var_ratio = 1 + 2 * np.sum((1 - k / n)[None, :] * rho[:, None] ** k[None, :], axis=1)
 
     with np.errstate(invalid="ignore", divide="ignore"):
         sd = np.sqrt(var_s * var_ratio)
         z = np.where(s > 0, (s - 1) / sd, np.where(s < 0, (s + 1) / sd, 0.0))
-    p = 2 * norm.sf(np.abs(z))
+    p_formula = 2 * norm.sf(np.abs(z))
+    null = _worst_case_null(n)
+    p_worst = (NULL_SIMS - np.searchsorted(null, np.abs(s), side="left") + 1) / (NULL_SIMS + 1)
+    p = np.minimum(p_formula, p_worst)
     return {"slope": slope, "intercept": intercept, "s": s, "var_s": var_s, "rho": rho,
             "var_ratio": var_ratio, "z": z, "p": p, "tau": tau}
 

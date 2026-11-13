@@ -98,7 +98,13 @@ def point(var_id: str, lat: float, lon: float) -> dict:
         "direction": None if not tested else ("increasing" if slope > 0 else "decreasing"),
         "meaning": None if not significant else (m["increase_means"] if slope > 0 else m["decrease_means"]),
         "source": m["source"], "method": m["method"],
+        "trend_line": None,
     }
+    intercept = tr["intercept"][r, c]
+    if tested and np.isfinite(intercept):
+        y0, y1 = s.period
+        per_year = float(slope) / 10
+        result["trend_line"] = [[y0, float(intercept)], [y1, float(intercept + per_year * (y1 - y0))]]
     if not tested:
         no_data = not np.isfinite(values).any()
         result["verdict"] = (f"{m['label']}: no data here" + (" (land-only variable)." if m["land_only"] else ".")

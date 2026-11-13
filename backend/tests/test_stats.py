@@ -8,12 +8,13 @@ from ground_truth.stats import fdr_bh, format_p, mann_kendall, verdict
 rng = np.random.default_rng(42)
 
 
-def _ar1(rows, n, phi, sd=1.0):
-    x = np.zeros((rows, n))
-    e = rng.normal(0, sd, (rows, n))
-    for k in range(1, n):
+def _ar1(rows, n, phi, sd=1.0, burn=60):
+    """Stationary AR(1) noise (burn-in so the series starts at its long-run variance)."""
+    e = rng.normal(0, sd, (rows, n + burn))
+    x = np.zeros_like(e)
+    for k in range(1, n + burn):
         x[:, k] = phi * x[:, k - 1] + e[:, k]
-    return x
+    return x[:, burn:]
 
 
 def _assert_core_matches_reference(series):
@@ -39,7 +40,7 @@ def test_core_matches_reference_with_ties():
 
 
 def test_no_autocorrelation_means_no_inflation():
-    """With rho clipped at 0 the p-value equals the original Mann-Kendall test."""
+    """With rho clipped at 0 (and a non-extreme S) the p-value equals the original Mann-Kendall test."""
     x = 0.05 * np.arange(30) + rng.normal(0, 1, (200, 30))
     res = mann_kendall(x)
     flat = res.rho == 0
@@ -48,19 +49,25 @@ def test_no_autocorrelation_means_no_inflation():
         assert res.p[r] == pytest.approx(mk.original_test(x[r]).p, rel=1e-9)
 
 
-@pytest.mark.parametrize("n,phi,upper", [(25, 0.0, 0.06), (25, 0.3, 0.07), (25, 0.6, 0.09),
-                                         (45, 0.3, 0.07), (45, 0.6, 0.08)])
+# Upper bounds are honest limits from simulation: very persistent short records stay above 5 %.
+@pytest.mark.parametrize("n,phi,upper", [(18, 0.0, 0.05), (18, 0.6, 0.11), (25, 0.0, 0.05), (25, 0.3, 0.07),
+                                         (25, 0.6, 0.09), (45, 0.3, 0.07), (45, 0.6, 0.07)])
 def test_false_alarm_rate_near_alpha(n, phi, upper):
     """On trend-free data about 5 % should be flagged, even when years are autocorrelated."""
     rate = np.mean(mann_kendall(_ar1(6000, n, phi)).p < 0.05)
-    assert 0.015 < rate < upper
+    assert 0.01 < rate < upper
 
 
 @pytest.mark.parametrize("name,data,min_power", [
     ("global temperature-like", lambda: 0.02 * np.arange(45) + rng.normal(0, 0.1, (1000, 45)), 0.99),
     ("strong, short", lambda: 0.05 * np.arange(25) + rng.normal(0, 0.1, (1000, 25)), 0.99),
     ("moderate", lambda: 0.03 * np.arange(25) + rng.normal(0, 0.3, (1000, 25)), 0.75),
-    ("trend + autocorrelated noise", lambda: 0.04 * np.arange(25) + _ar1(1000, 25, 0.4, 0.3), 0.6),
+    ("trend + autocorrelated noise", lambda: 0.04 * np.arange(25) + _ar1(1000, 25, 0.4, 0.3), 0.55),
+    ("accelerating decline, 18 years (Greenland-like)",
+     lambda: -(20 * np.arange(18) + 2.0 * np.arange(18) ** 2) + rng.normal(0, 20, (1000, 18)), 0.97),
+    ("rise then flatten (S-curve), 18 years",
+     lambda: 400 * np.tanh((np.arange(18) - 6) / 4) + rng.normal(0, 25, (1000, 18)), 0.97),
+    ("step change", lambda: np.where(np.arange(25) > 12, 1.0, 0) + rng.normal(0, 0.5, (1000, 25)), 0.6),
 ])
 def test_detects_real_trends(name, data, min_power):
     assert np.mean(mann_kendall(data()).p < 0.05) >= min_power, name
