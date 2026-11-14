@@ -91,7 +91,8 @@ def all_checks() -> dict:
         ev = json.loads(a.read_text())
         out["agent_eval"] = {k: ev[k] for k in ("passed", "total", "median_seconds", "at")} | {
             "cases": [{"question": r["question"], "passed": r["passed"],
-                       "failed": [k for k, v in r["checks"].items() if not v]} for r in ev["results"]]}
+                       "failed": [k for k, v in r["checks"].items() if not v],
+                       "tools": r.get("tools", []), "answer": r.get("answer", "")} for r in ev["results"]]}
     else:
         out["agent_eval"] = None
     return out

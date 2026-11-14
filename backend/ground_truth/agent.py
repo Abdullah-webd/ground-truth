@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 from openai import APIError, APIStatusError, OpenAI
 
 from . import store
-from .change import ChangeError, detect_change
+from .change import ChangeError, EarthEngineUnavailable, detect_change
 from .config import AGENT_MODEL, CACHE, OPENAI_API_KEY
 from .fires import fires
 from .geo import PlaceNotFound, locate
@@ -48,8 +48,11 @@ How you work:
 - Match the tool to the size of the place. For a country, region, ice sheet, desert, basin or continent (for example Greenland, northern India, the Sahel, the Amazon, the Arctic), use trend_in_region with the place's bounding box; a single point at its centre can show the opposite of the regional trend. Use trend_at_point only for a city, a site, or a point the user clicked.
 
 How you write:
-- Plain English, short: at most 120 words unless asked for more. Lead with the finding.
-- State the rate per decade, the period, and the p-value for trends. Say "statistically significant" only when the tool says significant is true; otherwise say the change is not statistically significant and could be natural variability.
+- Your readers are beginners: school students and members of the public. Write like a good science teacher talking to a curious 14-year-old. Plain words, short sentences, at most 120 words unless asked for more. Lead with the answer.
+- Use everyday names: "temperature", "plant greenness" (not NDVI), "rainfall", "water stored in the ground" (not TWS or mascons). No jargon such as p-value, Mann-Kendall, Theil-Sen, FDR, anomaly or embeddings unless the user uses it first.
+- For a trend, say the direction, how much it changed over the whole period (total_change_over_period, with units and years), and how sure we are using chance_it_is_luck ("the chance this is just luck is about 1 in 200"). Call a change "proven" or "real" only when significant is true; otherwise say it is "not proven yet" because the year-to-year ups and downs are bigger than the change.
+- Give a sense of scale when it helps (a layer of water 836 mm deep, 1.2 °C warmer than in 1980), and one sentence on what it means for people there, without claiming a cause.
+- If the user asks for technical detail (p-values, rates per decade, methods), give it exactly.
 - Change detection (AlphaEarth embeddings, Google DeepMind) finds where the land surface changed and what it became. Trend significance comes from NASA records (GISTEMP, MODIS, GPM IMERG, GRACE). Do not call AlphaEarth NASA data.
 - Never claim a cause. You may say what changed and where; explaining why needs further analysis.
 - If a tool returns an error, explain it simply and suggest what to try instead.
@@ -171,12 +174,12 @@ def _run_tool(name: str, args: dict, st: TurnState) -> dict:
         if name == "trend_at_point":
             r = store.point(args["variable"], args["lat"], args["lon"])
             st.ui.append({"action": "point", "variable": args["variable"], "lat": args["lat"], "lon": args["lon"]})
-            return _trim_series(r)
+            return _with_plain(_trim_series(r))
 
         if name == "trend_in_region":
             r = store.region(args["variable"], tuple(args["bbox"]))
             st.ui.append({"action": "region", "variable": args["variable"], "bbox": r["bbox"]})
-            return _trim_series(r)
+            return _with_plain(_trim_series(r))
 
         if name == "find_divergence":
             bbox = tuple(args["bbox"]) if args.get("bbox") else None
@@ -210,11 +213,35 @@ def _run_tool(name: str, args: dict, st: TurnState) -> dict:
             return {"ok": True}
 
         raise ToolError(f"unknown tool {name}")
-    except (ToolError, ChangeError, store.OutOfRange, store.NotFound, PlaceNotFound, UpstreamError, ValueError) as exc:
+    except (ToolError, ChangeError, EarthEngineUnavailable, store.OutOfRange, store.NotFound, PlaceNotFound, UpstreamError, ValueError) as exc:
         return {"error": str(exc)}
     except Exception as exc:  # Earth Engine and network failures
         log.exception("tool %s failed", name)
         return {"error": f"data service failed: {str(exc)[:200]}"}
+
+
+def _sig3(x: float) -> float:
+    return float(f"{x:.3g}")
+
+
+def _with_plain(r: dict) -> dict:
+    """Add the same everyday-language figures the case file shows: total change over the record and
+    the chance the pattern is luck ("about 1 in 200"), so the analyst can explain without jargon."""
+    p = r.get("q") if r.get("q") is not None else r.get("p")
+    slope = r.get("slope_per_decade")
+    if slope is not None and r.get("period"):
+        years = r["period"][1] - r["period"][0]
+        r["total_change_over_period"] = _sig3(slope / 10 * years)
+    if p is not None:
+        if p < 0.001:
+            r["chance_it_is_luck"], r["luck_one_in"] = "less than 1 in 1000", 1000
+        elif p < 0.1:
+            n = round(1 / p)
+            n = round(n, -1) if n >= 100 else n
+            r["chance_it_is_luck"], r["luck_one_in"] = f"about 1 in {n}", n
+        else:
+            r["chance_it_is_luck"] = f"about {max(1, min(9, round(p * 10)))} in 10"
+    return r
 
 
 def _collect_numbers(obj, out: set[float]) -> None:

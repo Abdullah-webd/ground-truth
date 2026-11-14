@@ -38,6 +38,23 @@ class ChangeError(ValueError):
     """Invalid request (region too large, bad years)."""
 
 
+class EarthEngineUnavailable(RuntimeError):
+    """Earth Engine can't be reached or its sign-in has expired on this server."""
+
+
+SIGN_IN_EXPIRED = ("New satellite change scans need Google Earth Engine, and its sign-in on this server has expired. "
+                   "The operator can fix it by running `earthengine authenticate`. Places scanned before still work.")
+
+
+def _ensure_ee() -> None:
+    try:
+        init_earth_engine()
+    except Exception as exc:  # ee raises EEException for missing or expired credentials
+        if "authorize" in str(exc).lower() or "reauth" in str(exc).lower() or "credentials" in str(exc).lower():
+            raise EarthEngineUnavailable(SIGN_IN_EXPIRED) from exc
+        raise EarthEngineUnavailable(f"Google Earth Engine is unavailable right now: {exc}") from exc
+
+
 def side_lengths_km(bbox: tuple[float, float, float, float]) -> tuple[float, float]:
     west, south, east, north = bbox
     mid = math.radians((south + north) / 2)
@@ -99,7 +116,7 @@ def tile_url(bbox, year_a: int, year_b: int) -> str:
     hit = _tile_cache.get(key)
     if hit and time.time() - hit[0] < _TILE_TTL_SECONDS:
         return hit[1]
-    init_earth_engine()
+    _ensure_ee()
     region = ee.Geometry.Rectangle(list(bbox))
     change = _change_image(region, year_a, year_b)
     m = change.updateMask(change.gt(VIS["min"])).getMapId(VIS)
@@ -117,11 +134,15 @@ def detect_change(bbox, year_a: int, year_b: int) -> dict:
     path = _cache_path(bbox, year_a, year_b)
     if path.exists():
         result = json.loads(path.read_text())
-        result["tile_url"] = tile_url(bbox, year_a, year_b)
+        try:
+            result["tile_url"] = tile_url(bbox, year_a, year_b)
+        except EarthEngineUnavailable:
+            # The hotspot outlines are saved; only the live heat layer needs Earth Engine.
+            result["tile_url"] = None
         result["cached"] = True
         return result
 
-    init_earth_engine()
+    _ensure_ee()
     t0 = time.perf_counter()
     region = ee.Geometry.Rectangle([west, south, east, north])
     change = _change_image(region, year_a, year_b)

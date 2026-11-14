@@ -15,7 +15,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from . import agent, checks, store, voice
-from .change import ChangeError, detect_change
+from .change import ChangeError, EarthEngineUnavailable, detect_change
 from .config import CESIUM_ION_TOKEN, DERIVED, FIRMS_MAP_KEY, OPENAI_API_KEY
 from .fires import fires
 from .geo import PlaceNotFound, locate
@@ -80,6 +80,8 @@ def _call(fn, *args, **kwargs):
         raise _error(400, "bad_request", str(exc)) from exc
     except UpstreamError as exc:
         raise _error(502, "upstream_failed", str(exc)) from exc
+    except EarthEngineUnavailable as exc:
+        raise _error(503, "earth_engine_unavailable", str(exc)) from exc
     except Exception as exc:  # Earth Engine and other unexpected failures
         msg = str(exc)
         if "timed out" in msg.lower() or "deadline" in msg.lower():
