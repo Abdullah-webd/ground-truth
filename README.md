@@ -47,3 +47,15 @@ make e2e        # browser walkthrough with screenshots (servers running)
 ## Data credits
 
 NASA GISS GISTEMP v4; NASA MODIS MOD13C1 (LP DAAC); NASA GPM IMERG V07 (GES DISC); NASA JPL GRACE/GRACE-FO mascons; NASA POWER; NASA FIRMS; NASA GIBS imagery (Black Marble, Blue Marble). AlphaEarth Foundations satellite embeddings (Google DeepMind) and Dynamic World (Google, World Resources Institute) via Google Earth Engine. Sentinel-2 cloudless 2023 by EOX IT Services GmbH (contains modified Copernicus Sentinel data), CC BY-NC-SA 4.0. Place search © OpenStreetMap contributors (Nominatim).
+
+## Deploy (Railway)
+
+Live: https://ground-truth-production-694ae5bd.up.railway.app
+
+One service serves the API and the built web app (see `Dockerfile`). The computed trend maps (`data/derived`) are not in git, so deploy from a machine that has run `make pipeline`:
+
+```bash
+railway up --no-gitignore -s ground-truth
+```
+
+Set these Railway variables: `OPENAI_API_KEY`, `FIRMS_MAP_KEY`, `CESIUM_ION_TOKEN`, `EE_PROJECT` (optional overrides: `AGENT_MODEL`, `VOICE_MODEL`, `LIMIT_*`). See `VERIFY.md` for the checks to run before and after each deploy.
