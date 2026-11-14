@@ -15,3 +15,7 @@ data/cache/*.log
 data/cache/*.jsonl
 gutcheck
 **/.DS_Store
+data/cache/labels
+data/cache/power_normals
+data/cache/eval*.log
+data/cache/prod-local.log

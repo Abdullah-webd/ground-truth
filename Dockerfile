@@ -19,11 +19,10 @@ COPY backend/ground_truth backend/ground_truth
 RUN pip install -e ./backend
 # Trend maps produced by `make pipeline` (not in git: regenerate with the pipeline).
 COPY data/derived data/derived
-# Caches that make the demo places instant: change scans, place labels, geocoding, climate normals.
+# Caches that make the demo places instant: change scans and geocoding. Place labels and climate
+# normals are rebuilt on the server on first use (keeps the upload small enough for Railway).
 COPY data/cache/change data/cache/change
-COPY data/cache/labels data/cache/labels
 COPY data/cache/geocode data/cache/geocode
-COPY data/cache/power_normals data/cache/power_normals
 COPY --from=web /app/web/dist web/dist
 ENV WEB_DIST=/app/web/dist
 RUN useradd --create-home app && chown -R app /app/data
