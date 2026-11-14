@@ -71,8 +71,10 @@ def test_divergence_and_cluster_image():
 
 @needs_temperature
 def test_static_overlays_are_served():
-    r = client.get("/static/derived/temperature/significance.png")
-    assert r.status_code == 200 and r.headers["content-type"] == "image/png"
+    r = client.get("/static/derived/temperature/significance.webp")
+    assert r.status_code == 200 and r.headers["content-type"] == "image/webp"
+    frame = client.get("/static/derived/temperature/frames/2020.webp")
+    assert frame.status_code == 200 and frame.content[8:12] == b"WEBP"
 
 
 def test_errors_are_clear():

@@ -133,11 +133,12 @@ def write_outputs(var: Variable, years: np.ndarray, cube: np.ndarray, tr: dict) 
     anomalies = cube if var.id == "temperature" else cube - np.nanmean(cube, axis=0, keepdims=True)
     frame_limit = render.symmetric_limit(anomalies, pct=95)
     for k, year in enumerate(years):
-        render.write_png(render.frame(anomalies[k], frame_limit, var.palette), out / "frames" / f"{year}.png")
+        render.write_webp(render.frame(anomalies[k], frame_limit, var.palette), out / "frames" / f"{year}.webp",
+                          size=render.FRAME_SIZE)
 
     sig_limit = render.symmetric_limit(tr["slope_decade"][tr["significant"]], pct=90)
-    render.write_png(render.significance(tr["slope_decade"], tr["tested"], tr["significant"], sig_limit,
-                                         var.palette), out / "significance.png")
+    render.write_webp(render.significance(tr["slope_decade"], tr["tested"], tr["significant"], sig_limit,
+                                          var.palette), out / "significance.webp")
 
     meta = {
         "id": var.id, "label": var.label, "units": var.units, "long_name": var.long_name,

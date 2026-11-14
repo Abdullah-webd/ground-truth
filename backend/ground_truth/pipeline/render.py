@@ -62,9 +62,18 @@ def smooth_mask(mask: np.ndarray) -> np.ndarray:
     return ndimage.zoom(mask.astype(float), _factor(mask.shape), order=1, mode="nearest", grid_mode=True) >= 0.5
 
 
-def write_png(rgba: np.ndarray, path: pathlib.Path) -> None:
+FRAME_SIZE = (1440, 720)  # 4× the 0.5° data grid: smooth on the globe, ~0.5 MB per year to stream
+
+
+def write_webp(rgba: np.ndarray, path: pathlib.Path, size: tuple[int, int] | None = None, quality: int = 90) -> None:
+    """Save an RGBA map as WebP (keeps transparency, ~4× smaller than PNG for these smooth colour maps).
+
+    Resizing happens in premultiplied alpha so coloured areas don't get dark fringes at their edges."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    Image.fromarray(rgba, "RGBA").save(path, optimize=True)
+    im = Image.fromarray(rgba, "RGBA")
+    if size and im.size != size:
+        im = im.convert("RGBa").resize(size, Image.LANCZOS).convert("RGBA")
+    im.save(path, "WEBP", quality=quality, method=6)
 
 
 def _intensity(values: np.ndarray, limit: float) -> np.ndarray:

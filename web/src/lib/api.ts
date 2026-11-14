@@ -66,8 +66,8 @@ export const api = {
 
 // `version` (the store's build time) busts the browser cache when the pipeline is re-run.
 export const overlayUrl = (variable: VariableId, version = "") =>
-  `/static/derived/${variable}/significance.png?v=${encodeURIComponent(version)}`;
+  `/static/derived/${variable}/significance.webp?v=${encodeURIComponent(version)}`;
 export const frameUrl = (variable: VariableId, year: number, version = "") =>
-  `/static/derived/${variable}/frames/${year}.png?v=${encodeURIComponent(version)}`;
+  `/static/derived/${variable}/frames/${year}.webp?v=${encodeURIComponent(version)}`;
 export const clusterUrl = (variable: VariableId, cluster: string, color?: string) =>
   `/api/divergence/cluster.png?variable=${variable}&cluster=${encodeURIComponent(cluster)}${color ? `&color=${color.replace("#", "")}` : ""}`;
