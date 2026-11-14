@@ -82,3 +82,16 @@ Tested in this session:
 - **Not feasible for free:** live sub-metre imagery of flames. Planet's free education tier has a 30-day delay ([Planet](https://planet.com/markets/education-and-research/)); tasked commercial imagery is paid.
 
 Decision (proposed, not built): a "fire close-up" that layers (1) Google sub-metre imagery and labels for what is on the ground, (2) the latest 10-minute geostationary fire image for "now", (3) today's VIIRS true colour for smoke, (4) the newest Sentinel-2 fire-vision image with its date, plus a named location ("in Gangamari, Maiduguri, Borno").
+
+## Place labels like Google Maps (research, 2026-11-14)
+
+Why our globe shows fewer names than Google Maps (from `web/src/globe/controller.ts`): labelled imagery only below 400 km (`STREET_LABELS_BELOW`); below 80 km the Google 3D city (`BUILDINGS_BELOW`) covers the labelled imagery and 3D tiles carry no names; baked-in raster text shrinks and blurs on tilted or distant views.
+
+Tested:
+- Bing Aerial-with-labels (ion asset 3, already used) vs Google Maps 2D "Satellite with Labels" (ion 3830183) over SoMa, San Francisco at z14/17/19: Bing shows street names, house numbers and building names ("Hanover Soma West") at z17–19; the Google preset shows only neighbourhood names (z14) and almost nothing at z17–19.
+- OpenFreeMap vector tiles (free, no key, OpenMapTiles schema, attribution "OpenFreeMap © OpenMapTiles Data from OpenStreetMap"), one z14 tile (~2.4 km): SoMa 26 places / 231 street names / 2,826 POIs / 1,163 house numbers; Ikeja 18 / 105 / 91 / 40; Maiduguri 24 / 7 / 31 / 0; Pilbara fire 0 (a z8 tile there names Dampier, Barlee Range, Cape Range). "Hanover Soma West" is not in OSM but is in Bing's labels.
+- CesiumJS 1.130+ can drape imagery layers on 3D Tiles (`tileset.imageryLayers`) ([Cesium blog](https://cesium.com/blog/2025/06/30/draping-imagery-over-3d-tiles-in-cesiumjs/)); Google's labels-only ion asset does not drape ([#12940](https://github.com/CesiumGS/cesium/issues/12940)).
+- Cesium has no built-in vector-tile label layer; labels from vector data go into a `LabelCollection` with our own zoom filtering and decluttering ([EndPoint Dev](https://www.endpointdev.com/blog/2025/02/cesium-place-label-vector-data-tiles/)).
+- Google Places content: restricted in the EEA and requires Google billing ([EEA FAQ](https://developers.google.com/maps/comms/eea/faq?authuser=4)); not pursued.
+
+Proposed (not built): crisp vector labels from OpenFreeMap at every height (countries to streets and landmarks), floating above 3D buildings, decluttered by rank; keep Bing labelled imagery at street zoom and drape it on the 3D city.
