@@ -52,10 +52,6 @@ NASA GISS GISTEMP v4; NASA MODIS MOD13C1 (LP DAAC); NASA GPM IMERG V07 (GES DISC
 
 Live: https://ground-truth-production-694ae5bd.up.railway.app
 
-One service serves the API and the built web app (see `Dockerfile`). The computed trend maps (`data/derived`) are not in git, so deploy from a machine that has run `make pipeline`:
-
-```bash
-railway up --no-gitignore -s ground-truth
-```
+One service serves the API and the built web app (see `Dockerfile`). The Railway service is connected to this GitHub repository, and the computed trend maps (`data/derived`) are committed, so **pushing to `main` deploys**. After re-running `make pipeline`, commit `data/derived` and push.
 
 Set these Railway variables: `OPENAI_API_KEY`, `FIRMS_MAP_KEY`, `CESIUM_ION_TOKEN`, `EE_PROJECT` (optional overrides: `AGENT_MODEL`, `VOICE_MODEL`, `LIMIT_*`). See `VERIFY.md` for the checks to run before and after each deploy.

@@ -2,7 +2,7 @@
 
 Live URL: https://ground-truth-production-694ae5bd.up.railway.app
 Code: https://github.com/Abdullah-webd/ground-truth (private)
-Deploy: `railway up --no-gitignore -s ground-truth` (uploads code + data/derived + warm caches; see `.railwayignore`). The trend maps are git-ignored, so a GitHub-connected deploy would have no data.
+Deploy: push to `main` on GitHub; Railway builds from the repo automatically (the map data in data/derived is committed). Watch with `railway deployment list -s ground-truth`.
 Start for tests (production-style, one server): `make build` once, then `cd backend && WEB_DIST=../web/dist ../.venv/bin/uvicorn ground_truth.api:app --port 8790`
 
 ## Checks
