@@ -24,6 +24,7 @@ import {
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   SingleTileImageryProvider,
+  EllipsoidTerrainProvider,
   Terrain,
   UrlTemplateImageryProvider,
   Viewer,
@@ -94,6 +95,14 @@ export class GlobeController {
   constructor(container: HTMLElement, options: GlobeOptions = {}) {
     this.photorealistic = !!options.ionToken;
     Ion.defaultAccessToken = options.ionToken ?? "";
+    // Cesium World Terrain via ion. If it can't be downloaded (venue Wi-Fi, DNS), fall back to a smooth
+    // Earth so the globe still shows: without this the whole globe disappears.
+    const terrain = this.photorealistic ? Terrain.fromWorldTerrain() : undefined;
+    terrain?.errorEvent.addEventListener((err: unknown) => {
+      console.warn("3D terrain unavailable, using a smooth Earth:", err);
+      this.viewer.scene.terrainProvider = new EllipsoidTerrainProvider();
+      this.viewer.scene.globe.depthTestAgainstTerrain = false;
+    });
     this.viewer = new Viewer(container, {
       baseLayer: false,
       animation: false,
@@ -108,7 +117,7 @@ export class GlobeController {
       selectionIndicator: false,
       contextOptions: { webgl: { preserveDrawingBuffer: true, alpha: false } },
       orderIndependentTranslucency: false,
-      ...(this.photorealistic ? { terrain: Terrain.fromWorldTerrain() } : {}),
+      ...(terrain ? { terrain } : {}),
     });
     const { scene } = this.viewer;
     // The platform is white paper: Earth floats on the page, no starfield.
