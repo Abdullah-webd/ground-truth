@@ -6,7 +6,7 @@ const H = 420;
 const PAD = { l: 64, r: 24, t: 24, b: 44 };
 
 /** The live NASA record for the proof scene. Parts carry classes the landing timeline animates. */
-export function ProofChart({ trend }: { trend: PointTrend }) {
+export function ProofChart({ trend, title, place }: { trend: PointTrend; title: string; place: string }) {
   const g = useMemo(() => {
     const pts = trend.years
       .map((yr, i) => ({ yr, v: trend.values[i] }))
@@ -32,9 +32,9 @@ export function ProofChart({ trend }: { trend: PointTrend }) {
   }, [trend]);
 
   if (!g) return <p className="text-muted">Not enough years to draw.</p>;
-  const fmt = (v: number) => (Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(1));
+  const fmt = (v: number) => (Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 1 ? v.toFixed(1) : v.toFixed(2));
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={`${trend.label} by year at Punjab, ${trend.units}, with trend line`}>
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={`${trend.label} by year at ${place}, ${trend.units}, with trend line`}>
       {g.ticks.map((t) => (
         <g key={t}>
           <line x1={PAD.l} x2={W - PAD.r} y1={g.y(t)} y2={g.y(t)} stroke="var(--color-line)" />
@@ -44,7 +44,7 @@ export function ProofChart({ trend }: { trend: PointTrend }) {
         </g>
       ))}
       <text x={PAD.l} y={14} fontSize="13" fill="var(--color-faint)">
-        Water stored in the ground, compared with the 2004–2009 average ({trend.units})
+        {title}
       </text>
       {[g.pts[0].yr, g.pts[Math.floor(g.pts.length / 2)].yr, g.pts[g.pts.length - 1].yr].map((yr) => (
         <text key={yr} x={g.x(yr)} y={H - 14} textAnchor="middle" fontSize="13" fill="var(--color-muted)" className="tabular">

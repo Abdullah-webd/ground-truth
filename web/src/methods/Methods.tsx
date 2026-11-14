@@ -49,6 +49,16 @@ const DATASETS = [
       "Annual mean water-equivalent thickness (mm) of all water stored in the land: groundwater, soil moisture, rivers, lakes, snow and ice. Years with fewer than 9 months of data (the GRACE to GRACE-FO gap) are left out.",
   },
   {
+    name: "Groundwater",
+    product: "NASA GLDAS-2.2 Catchment Land Surface Model, daily, with GRACE data assimilation",
+    url: "https://disc.gsfc.nasa.gov/datasets/GLDAS_CLSM025_DA1_D_2.2/summary",
+    native: "0.25° model grid (≈28 km), but constrained by GRACE's ≈300 km footprint",
+    shown: "0.5° (about 55 km)",
+    years: "2003–2025",
+    processing:
+      "Annual mean groundwater storage (mm of water). GLDAS splits GRACE's total land water into soil moisture, snow, surface water and groundwater with a land-surface model (Li et al. 2019), the standard way to separate groundwater from GRACE.",
+  },
+  {
     name: "Weather now and recent months",
     product: "NASA POWER daily (MERRA-2 temperature, IMERG-based rainfall)",
     url: "https://power.larc.nasa.gov/",
@@ -86,6 +96,7 @@ const REFERENCES = [
   "Benjamini & Hochberg (1995) JRSS B 57, 289–300",
   "Wilks (2016) BAMS 97, 2263–2273",
   "Rodell, Velicogna & Famiglietti (2009) Nature 460, 999–1002",
+  "Li et al. (2019) Water Resources Research 55 (GLDAS-2.2 GRACE data assimilation)",
   "Velicogna et al. (2020) GRL 47, e2020GL087291",
   "Rantanen et al. (2022) Communications Earth & Environment 3, 168",
   "Chen et al. (2019) Nature Sustainability 2, 122–129",
@@ -100,7 +111,7 @@ function Section({ id, title, children }: { id: string; title: string; children:
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-60px" }}
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="break-inside-avoid border-t border-line pt-10"
+      className="print-show break-inside-avoid border-t border-line pt-10"
     >
       <h2 className="atlas text-[clamp(30px,4vw,48px)] leading-[0.95] text-ink">{title}</h2>
       <div className="mt-5 flex flex-col gap-4 text-[16px] leading-relaxed text-ink/90">{children}</div>
@@ -136,9 +147,13 @@ export default function Methods() {
           Ground Truth
         </a>
         <div className="flex items-center gap-3 text-sm">
-          <button type="button" onClick={() => window.print()} className="btn btn-quiet h-10 rounded-full border border-line px-4 text-ink">
-            Save as PDF
-          </button>
+          <a
+            href="/ground-truth-technical-report.pdf"
+            download
+            className="btn btn-quiet inline-flex h-10 items-center rounded-full border border-line px-4 text-ink"
+          >
+            Technical Report (PDF)
+          </a>
           <a
             href="/explore"
             onClick={(e) => {
@@ -296,7 +311,11 @@ export default function Methods() {
           <ul className="flex list-disc flex-col gap-2 pl-5 text-[15px]">
             <li>Grid squares are 55–220 km; GRACE's water footprint is about 300 km. A finding describes the area, not one farm or street.</li>
             <li>Records are 21–46 years long. Some real trends need longer records to be proven; "not proven" is not "no change".</li>
-            <li>GRACE measures all water in the land together. A separate groundwater estimate (NASA GLDAS-2.2, which assimilates GRACE) is our next layer.</li>
+            <li>GRACE measures all water in the land together. Our groundwater layer is a model estimate (NASA GLDAS-2.2, constrained by GRACE), not a measurement of individual wells.</li>
+            <li>
+              GLDAS groundwater changes are often smaller than GRACE-only estimates (north-west India: −46 vs −267 mm per decade of total water), because the
+              model assigns part of the change to soil moisture. Rely on the direction and the proven verdict more than the exact size.
+            </li>
             <li>On short, strongly persistent records, false alarms can reach about 8 %.</li>
             <li>We show what changed and how surely, never why: causes need further science.</li>
             <li>Land change uses Google DeepMind's AlphaEarth (not NASA) and starts in 2017.</li>
@@ -353,7 +372,6 @@ export default function Methods() {
 
         <Section id="next" title="What comes next">
           <ul className="flex list-disc flex-col gap-2 pl-5 text-[15px]">
-            <li>A groundwater layer from NASA GLDAS-2.2.</li>
             <li>Answers in Hausa, Yoruba, Igbo and Pidgin.</li>
             <li>Alerts for farmers by SMS or WhatsApp when a season departs from normal.</li>
             <li>More records: soil moisture, evapotranspiration, air quality.</li>

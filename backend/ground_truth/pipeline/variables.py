@@ -90,6 +90,21 @@ def _water_year(year: int) -> np.ndarray:
     return np.where(_land_mask(), grid, np.nan)
 
 
+# ---------------------------------------------------------------- groundwater (NASA GLDAS-2.2 CLSM)
+def _groundwater_year(year: int) -> np.ndarray:
+    """Annual mean groundwater storage (mm) from GLDAS-2.2 Catchment, which assimilates GRACE.
+
+    GRACE alone measures all water in the land; GLDAS-2.2 splits it into soil moisture, snow, surface
+    water and groundwater using a land-surface model constrained by GRACE (Li et al. 2019)."""
+    import ee
+
+    init_earth_engine()
+    col = ee.ImageCollection("NASA/GLDAS/V022/CLSM/G025/DA1D").select("GWS_tavg")
+    days = col.filterDate(f"{year}-01-01", f"{year + 1}-01-01")
+    grid = fetch_grid(days.mean(), GRID_HALF, projection=col.first().projection(), max_pixels=1024)
+    return np.where(_land_mask(), grid, np.nan)
+
+
 _LAND: np.ndarray | None = None
 
 
@@ -190,5 +205,16 @@ VARIABLES: dict[str, Variable] = {
             grid=GRID_HALF, years=(2003, 2023), palette=BRBG,
             increase_means="gaining water", decrease_means="losing water", land_only=True,
             fetch_year=_water_year),
+        Variable(
+            id="groundwater", label="Groundwater", units="mm",
+            long_name="Annual mean groundwater storage (water-equivalent depth)",
+            source="NASA GLDAS-2.2 Catchment Land Surface Model (CLSM) with GRACE data assimilation, daily 0.25°, "
+                   "aggregated to 0.5° (land only)",
+            citation="Li, B. et al. (2019). Global GRACE data assimilation for groundwater and drought monitoring. "
+                     "Water Resources Research 55. doi:10.5067/TXBMLX370XX8",
+            url="https://disc.gsfc.nasa.gov/datasets/GLDAS_CLSM025_DA1_D_2.2/summary",
+            grid=GRID_HALF, years=(2003, 2025), palette=BRBG,
+            increase_means="gaining groundwater", decrease_means="losing groundwater", land_only=True,
+            fetch_year=_groundwater_year),
     ]
 }

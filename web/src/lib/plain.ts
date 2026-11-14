@@ -57,6 +57,16 @@ export const PLAIN: Record<VariableId, PlainVariable> = {
     amount: (a) => (a >= 1000 ? `a layer of water ${(a / 1000).toFixed(1)} m deep` : `a layer of water ${round(a)} mm deep`),
     relative: false,
   },
+  groundwater: {
+    name: "Groundwater",
+    question: "Is the groundwater going down?",
+    what: "Water held underground in soil and rock, the water that wells and boreholes draw on. NASA's GLDAS model separates it from soil moisture, snow and rivers, and is kept in line with GRACE's gravity measurements. Its grid is about 28 km, but it can't be sharper than GRACE's roughly 300 km view.",
+    satellite: "NASA GLDAS (with GRACE)",
+    up: "gaining groundwater",
+    down: "losing groundwater",
+    amount: (a) => (a >= 1000 ? `a layer of water ${(a / 1000).toFixed(1)} m deep` : `a layer of water ${round(a)} mm deep`),
+    relative: false,
+  },
 };
 
 /** "1 in 1,000", "about 1 in 77", "about 4 in 10": the chance a pattern this strong is just luck. */

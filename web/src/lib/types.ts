@@ -1,5 +1,5 @@
-export type VariableId = "temperature" | "vegetation" | "rainfall" | "water";
-export const VARIABLE_IDS: VariableId[] = ["temperature", "vegetation", "rainfall", "water"];
+export type VariableId = "temperature" | "vegetation" | "rainfall" | "water" | "groundwater";
+export const VARIABLE_IDS: VariableId[] = ["temperature", "vegetation", "rainfall", "water", "groundwater"];
 
 export type BBox = [number, number, number, number]; // west, south, east, north
 

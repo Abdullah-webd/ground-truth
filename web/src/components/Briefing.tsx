@@ -24,7 +24,7 @@ export function Briefing({
   if (trends.some((t) => !t)) {
     return (
       <div className="flex flex-col gap-2" aria-busy="true">
-        <p className="text-sm text-muted">Reading four NASA records for this spot…</p>
+        <p className="text-sm text-muted">Reading the NASA records for this spot…</p>
         {[0, 1, 2, 3].map((i) => (
           <div key={i} className="h-14 animate-pulse rounded-lg bg-ground" />
         ))}

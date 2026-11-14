@@ -35,6 +35,13 @@ REGIONAL = [
         "expect": "decrease",
     },
     {
+        "id": "north-india-groundwater-gldas", "variable": "groundwater", "bbox": (70, 25, 80, 32),
+        "title": "Groundwater alone (GLDAS) confirms north-west India's decline",
+        "finding": "Separating groundwater from soil moisture and snow, the decline in north-west India remains.",
+        "reference": "Rodell, M., Velicogna, I. & Famiglietti, J. (2009). Nature 460, 999–1002; Li, B. et al. (2019). WRR 55.",
+        "expect": "decrease",
+    },
+    {
         "id": "global-greening", "variable": "vegetation", "bbox": (70, 18, 135, 54),
         "title": "China and India are greening",
         "finding": "Satellite records show strong greening over China and India, from forestation and cropland.",

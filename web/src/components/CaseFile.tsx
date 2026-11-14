@@ -131,6 +131,8 @@ function EvidenceNotes({ t, variable, lat, lon }: { t: PointTrend; variable: Var
   const uncertain = [
     variable === "water"
       ? "GRACE sees water changes over areas about 300 km across, so this describes the wider region, not one farm or well."
+      : variable === "groundwater"
+        ? "Groundwater here is a NASA model estimate (GLDAS) kept in line with GRACE, so it can't be sharper than about 300 km and isn't a measurement of one well."
       : `This is the average for a grid square about ${km} km across, not one street or farm.`,
     `The record covers ${t.period[0]}–${t.period[1]}. A longer record could prove (or rule out) a trend that isn't clear yet.`,
     "This shows what changed and how surely. It does not prove why.",
@@ -198,6 +200,7 @@ const SOURCE: Record<VariableId, { name: string; url: string }> = {
   vegetation: { name: "NASA MODIS Terra (MOD13C1)", url: "https://lpdaac.usgs.gov/products/mod13c1v061/" },
   rainfall: { name: "NASA GPM IMERG V07", url: "https://gpm.nasa.gov/data/imerg" },
   water: { name: "NASA GRACE / GRACE-FO (JPL mascons)", url: "https://grace.jpl.nasa.gov/data/get-data/jpl_global_mascons/" },
+  groundwater: { name: "NASA GLDAS-2.2 (with GRACE)", url: "https://disc.gsfc.nasa.gov/datasets/GLDAS_CLSM025_DA1_D_2.2/summary" },
 };
 
 function PointCase({ lat, lon, name }: { lat: number; lon: number; name?: string }) {

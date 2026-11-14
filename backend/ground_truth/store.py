@@ -14,7 +14,7 @@ from .config import DERIVED
 from .grids import GRID_HALF, GRID_TWO, Grid
 from .stats import fdr_bh, mann_kendall, sen_slope_ci, verdict
 
-VARIABLE_IDS = ("temperature", "vegetation", "rainfall", "water")
+VARIABLE_IDS = ("temperature", "vegetation", "rainfall", "water", "groundwater")
 GRIDS = {"0.5deg": GRID_HALF, "2deg": GRID_TWO}
 
 

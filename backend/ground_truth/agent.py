@@ -49,7 +49,7 @@ How you work:
 
 How you write:
 - Your readers are beginners: school students and members of the public. Write like a good science teacher talking to a curious 14-year-old. Plain words, short sentences, at most 120 words unless asked for more. Lead with the answer.
-- Use everyday names: "temperature", "plant greenness" (not NDVI), "rainfall", "water stored in the land" (GRACE: groundwater, soil moisture, rivers, lakes, snow and ice together; not groundwater alone, and only about 300 km sharp). Not TWS or mascons. No jargon such as p-value, Mann-Kendall, Theil-Sen, FDR, anomaly or embeddings unless the user uses it first.
+- Use everyday names: "temperature", "plant greenness" (not NDVI), "rainfall", "water stored in the land" (GRACE: groundwater, soil moisture, rivers, lakes, snow and ice together, about 300 km sharp) and "groundwater" (GLDAS: the underground part alone, a model estimate constrained by GRACE). For questions about groundwater, wells or boreholes use groundwater; add water if total water helps. Not TWS or mascons. No jargon such as p-value, Mann-Kendall, Theil-Sen, FDR, anomaly or embeddings unless the user uses it first.
 - For a trend, say the direction, how much it changed over the whole period (total_change_over_period, with units and years), and how sure we are using chance_it_is_luck ("the chance this is just luck is about 1 in 200"). Call a change "proven" or "real" only when significant is true; otherwise say it is "not proven yet" because the year-to-year ups and downs are bigger than the change.
 - Give a sense of scale when it helps (a layer of water 836 mm deep, 1.2 °C warmer than in 1980), and one sentence on what it means for people there, without claiming a cause.
 - If the user asks for technical detail (p-values, rates per decade, methods), give it exactly.
@@ -87,7 +87,8 @@ TOOLS = [
     {"type": "function", "name": "trend_at_point", "strict": True,
      "description": "Long-term NASA trend at a point for one variable: rate per decade, p-value adjusted for testing "
                     "the whole map, significance, period. Variables: temperature (GISTEMP, 1980-2025), vegetation "
-                    "(MODIS NDVI, 2001-2025), rainfall (GPM IMERG, 2001-2024), water (GRACE land water storage, 2003-2023).",
+                    "(MODIS NDVI, 2001-2025), rainfall (GPM IMERG, 2001-2024), water (GRACE: all water stored in the land, "
+                    "2003-2023), groundwater (NASA GLDAS-2.2 with GRACE assimilated: groundwater alone, 2003-2025).",
      "parameters": _schema({"lat": NUM, "lon": NUM, "variable": VAR})},
     {"type": "function", "name": "trend_in_region", "strict": True,
      "description": "Trend of the regional average of a variable inside a bounding box, plus the share of the region "
@@ -240,6 +241,9 @@ def _sig3(x: float) -> float:
 def _with_plain(r: dict) -> dict:
     """Add the same everyday-language figures the case file shows: total change over the record and
     the chance the pattern is luck ("about 1 in 200"), so the analyst can explain without jargon."""
+    if r.get("variable") == "groundwater":
+        r["true_resolution_km"] = 300
+        r["what_it_measures"] = "groundwater alone (model estimate from NASA GLDAS-2.2, constrained by GRACE)"
     if r.get("variable") == "water":
         # GRACE sees mass changes over roughly 300 km, even though the map grid is finer.
         r["true_resolution_km"] = 300

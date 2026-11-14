@@ -221,7 +221,7 @@ export function SpinningEarth({
       if (!visible || !ready) return;
       if (!dragging) {
         velocity *= 0.92;
-        rot += velocity + (reduce ? 0 : dt * 0.09);
+        rot += velocity + (reduce ? 0 : dt * 0.03); // slow, so Africa stays in view
       }
       const target = showingB ? 1 : 0;
       mixAB += (target - mixAB) * Math.min(1, dt * 5);

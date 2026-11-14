@@ -29,7 +29,7 @@ export const PERSONAS: Persona[] = [
     why: "Tested trends with 95 % ranges, sources, and data you can download and re-check.",
     questions: [
       "Where in West Africa is plant greenness proven to be falling?",
-      "Is water stored in the land falling in northern Nigeria?",
+      "Is groundwater falling anywhere in northern Nigeria?",
       "Where is rainfall trending in opposite directions in Africa?",
     ],
   },

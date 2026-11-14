@@ -16,6 +16,7 @@ SHORT_SOURCE = {
     "vegetation": ("NASA MODIS Terra (MOD13C1)", "https://lpdaac.usgs.gov/products/mod13c1v061/"),
     "rainfall": ("NASA GPM IMERG V07", "https://gpm.nasa.gov/data/imerg"),
     "water": ("NASA GRACE / GRACE-FO (JPL mascons)", "https://grace.jpl.nasa.gov/data/get-data/jpl_global_mascons/"),
+    "groundwater": ("NASA GLDAS-2.2 (with GRACE)", "https://disc.gsfc.nasa.gov/datasets/GLDAS_CLSM025_DA1_D_2.2/summary"),
 }
 
 

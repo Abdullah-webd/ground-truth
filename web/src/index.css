@@ -255,3 +255,21 @@ body,
     font-size: 9px !important;
   }
 }
+
+/* Printing the Methods page (the Technical Report): no scroll animations, clean pages. */
+@media print {
+  .print-show {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  html,
+  body {
+    background: #fff !important;
+  }
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 10px;
+    color: #56616b;
+    word-break: break-all;
+  }
+}

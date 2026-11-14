@@ -14,12 +14,13 @@ import { PERSONAS } from "../lib/personas";
 import { useVariables } from "../lib/useVariables";
 import { VARIABLE_IDS, type VariableId } from "../lib/types";
 import { ProofChart } from "./ProofChart";
+import { AfricaCases } from "./AfricaCases";
 import { SpinningEarth, type EarthHandle } from "./SpinningEarth";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger, SplitText);
 
-// Punjab, India: the case we tell on this page (GRACE land water storage, a well-documented decline).
-const PUNJAB = { lat: 31.03, lon: 75.41 };
+// Lagos, Nigeria: the case we tell on this page (NASA MODIS plant greenness, a proven decline).
+const LAGOS = { lat: 6.55, lon: 3.38 };
 
 function OpenGlobe({ children = "Open the globe", className = "" }: { children?: React.ReactNode; className?: string }) {
   return (
@@ -65,11 +66,14 @@ export default function Landing() {
 
   // Same hook (and cache entry) as the globe screen, so moving between pages never mixes data shapes.
   const vars = useVariables();
-  const water = useQuery({ queryKey: ["point", "water", PUNJAB.lat, PUNJAB.lon], queryFn: () => api.point("water", PUNJAB.lat, PUNJAB.lon) });
+  const green = useQuery({ queryKey: ["point", "vegetation", LAGOS.lat, LAGOS.lon], queryFn: () => api.point("vegetation", LAGOS.lat, LAGOS.lon) });
   const checks = useQuery({ queryKey: ["checks"], queryFn: api.checks, staleTime: Infinity });
   const meta = (id: VariableId) => vars.data?.find((v) => v.id === id);
   const built = meta("temperature")?.built ?? "";
-  const example = checks.data?.agent_eval?.cases?.find((c) => /Punjab/.test(c.question)) ?? checks.data?.agent_eval?.cases?.[0];
+  const example =
+    checks.data?.agent_eval?.cases?.find((c) => /Abuja/.test(c.question)) ??
+    checks.data?.agent_eval?.cases?.find((c) => /Lagos/.test(c.question)) ??
+    checks.data?.agent_eval?.cases?.[0];
 
   useGSAP(
     () => {
@@ -158,7 +162,7 @@ export default function Landing() {
               });
           });
 
-          // 5. Four questions: each question takes over the globe as it reaches the middle of the screen.
+          // 5. Five questions: each question takes over the globe as it reaches the middle of the screen.
           gsap.utils.toArray<HTMLElement>(".q-row").forEach((row) => {
             const id = row.dataset.var as VariableId;
             ScrollTrigger.create({
@@ -212,6 +216,20 @@ export default function Landing() {
             ease: "expo.out",
             scrollTrigger: { trigger: ".chat", start: "top 70%", once: true },
           });
+
+          // Africa cases: each card wipes open from the left, one after another.
+          gsap.fromTo(
+            ".case-card",
+            { clipPath: "inset(0% 100% 0% 0% round 16px)" },
+            {
+              clipPath: "inset(0% 0% 0% 0% round 16px)",
+              duration: 1,
+              stagger: 0.09,
+              ease: "expo.out",
+              scrollTrigger: { trigger: ".case-track", start: "top 85%", once: true },
+            },
+          );
+          gsap.from(".hero-meta-eyebrow", { autoAlpha: 0, y: 10, duration: 0.7, delay: 0.3, ease: "expo.out" });
 
           // Who it's for: cards rise in sequence, left to right.
           gsap.from(".who-item", {
@@ -272,8 +290,10 @@ export default function Landing() {
   );
 
   const t = meta("temperature");
-  const w = water.data;
-  const lost = w && w.slope_per_decade != null ? Math.abs((w.slope_per_decade / 10) * (w.period[1] - w.period[0])) : null;
+  const w = green.data;
+  const vals = w ? w.values.filter((v): v is number => v != null) : [];
+  const total = w && w.slope_per_decade != null ? (w.slope_per_decade / 10) * (w.period[1] - w.period[0]) : null;
+  const lostPct = total != null && vals.length ? Math.round((Math.abs(total) / (vals.reduce((a, b) => a + b, 0) / vals.length)) * 100) : null;
 
   return (
     <div ref={root} className="bg-paper text-ink">
@@ -300,6 +320,10 @@ export default function Landing() {
         {/* 1. Hero */}
         <section data-section className="hero relative flex min-h-[100svh] items-center overflow-hidden px-5 pb-16 pt-28 md:px-10">
           <div className="relative z-10 max-w-[880px]">
+            <p className="hero-meta-eyebrow mb-5 flex items-center gap-2 text-[15px] font-medium text-muted">
+              <span className="inline-block h-2 w-2 rounded-full bg-[#2e8a57]" aria-hidden />
+              Built for Africa. Open to the whole planet.
+            </p>
             <h1 className="atlas text-[clamp(64px,10.2vw,184px)] leading-[0.86]">
               <span className="hero-line block overflow-hidden pb-[0.04em]"><span className="block">Earth is changing.</span></span>
               <span className="hero-line block overflow-hidden pb-[0.04em]"><span className="block text-muted">Which changes</span></span>
@@ -351,16 +375,16 @@ export default function Landing() {
               <h2 className="atlas text-[clamp(44px,5.6vw,92px)] leading-[0.9]">
                 Case one:
                 <br />
-                Punjab's hidden water
+                Lagos is losing its green
               </h2>
               <ol className="flex flex-col gap-6 text-[18px] leading-snug">
                 <li className="proof-step">
                   <span className="mb-1 block text-sm font-semibold text-muted">The record</span>
-                  NASA's GRACE satellites weigh the water stored under Punjab, India, every month since 2003. Each dot is one year.
+                  NASA's MODIS satellite has measured how green Lagos looks from space every 16 days since 2001. Each dot is one year.
                 </li>
                 <li className="proof-step">
                   <span className="mb-1 block text-sm font-semibold text-muted">The question</span>
-                  It bounces around. Is it really falling, or could a run of dry years fool us?
+                  It bounces around with the rains. Is the city really getting browner, or could a few dry years fool us?
                 </li>
                 <li className="proof-step">
                   <span className="mb-1 block text-sm font-semibold text-muted">The test</span>
@@ -372,23 +396,39 @@ export default function Landing() {
             </div>
             <div className="rounded-3xl border border-line bg-paper p-5 md:p-8">
               {w ? (
-                <ProofChart trend={w} />
-              ) : water.isError ? (
+                <ProofChart trend={w} title="How green Lagos looks from space (NASA MODIS greenness, 0 = bare, 1 = dense forest)" place="Lagos" />
+              ) : green.isError ? (
                 <p className="text-muted">The live NASA record couldn't load. Start the backend and refresh.</p>
               ) : (
                 <div className="aspect-[16/10] animate-pulse rounded-xl bg-ground" />
               )}
               <p className="proof-verdict mt-5 text-[22px] font-medium leading-snug">
-                {lost != null ? (
+                {lostPct != null && w ? (
                   <>
-                    Since {w!.period[0]} the ground here has lost water equal to a layer about{" "}
-                    <span className="mark">{lost >= 1000 ? `${(lost / 1000).toFixed(1)} m` : `${Math.round(lost)} mm`} deep</span>, spread over the whole region.
-                    Most of it was pumped up to water crops.
+                    Since {w.period[0]}, Lagos has become <span className="mark">about {lostPct}% less green</span>
+                    {w.slope_ci_per_decade ? ` (likely ${Math.abs(w.slope_ci_per_decade[1]).toFixed(3)} to ${Math.abs(w.slope_ci_per_decade[0]).toFixed(3)} on the greenness scale per decade)` : ""}.
+                    Satellites also observed patches of trees and wetland turning into buildings: an observation, not a tested cause.
                   </>
                 ) : (
                   "Loading the live NASA record…"
                 )}
               </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Africa, case by case */}
+        <section data-section className="africa px-5 pb-[8vh] pt-[14vh] md:px-10">
+          <div className="mx-auto max-w-[1280px]">
+            <h2 data-split className="atlas max-w-[1000px] text-[clamp(44px,6vw,104px)] leading-[0.9]">
+              Africa, case by case
+            </h2>
+            <p data-reveal className="mt-5 max-w-[700px] text-[19px] leading-relaxed text-muted">
+              Real questions people ask about their part of Africa, checked against decades of NASA records with the same test the app uses. Some changes
+              are proven. Some popular stories aren't, yet. Swipe through, then ask Aisha about any of them.
+            </p>
+            <div className="mt-10">
+              <AfricaCases />
             </div>
           </div>
         </section>
@@ -421,7 +461,7 @@ export default function Landing() {
                 {
                   step: "Prove it",
                   title: "Test it against decades of NASA records",
-                  body: "Temperature, plant growth, rainfall and underground water get a statistical test. You see a chart, the size of the change, and the chance it's just luck.",
+                  body: "Temperature, plant growth, rainfall and water in the land get a statistical test. You see a chart, the size of the change with its 95 % range, and the chance it's just luck.",
                   img: "/landing/step-prove.webp",
                   alt: "The case file showing proven warming with a year-by-year chart",
                 },
@@ -447,12 +487,12 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* 5. Four questions, one planet */}
+        {/* 5. Five questions, one planet */}
         <section data-section className="px-5 py-[14vh] md:px-10">
           <div className="mx-auto grid max-w-[1280px] gap-10 md:grid-cols-[minmax(0,6fr)_minmax(0,6fr)]">
             <div>
               <h2 data-split className="atlas text-[clamp(44px,6vw,104px)] leading-[0.9]">
-                Four questions anyone can ask
+                Five questions anyone can ask
               </h2>
               <ul className="mt-12 flex flex-col">
                 {VARIABLE_IDS.map((id) => {
@@ -483,7 +523,7 @@ export default function Landing() {
                 <SpinningEarth
                   overlay={meta(question) ? overlayUrl(question, meta(question)!.built) : null}
                   spinRef={spin}
-                  startLon={60}
+                  startLon={20}
                   label={`Globe showing where ${PLAIN[question].name.toLowerCase()} has a proven trend`}
                   className="aspect-square w-full max-w-[560px] drop-shadow-[0_30px_50px_rgba(17,24,31,0.14)]"
                 />
@@ -599,6 +639,10 @@ export default function Landing() {
                 className="link text-ink"
               >
                 Methods & data
+              </a>
+              {" "}
+              <a href="/ground-truth-technical-report.pdf" download className="link text-ink">
+                Technical Report (PDF)
               </a>
             </p>
           </div>

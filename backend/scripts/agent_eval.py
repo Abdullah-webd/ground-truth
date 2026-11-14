@@ -19,7 +19,7 @@ from ground_truth.config import DERIVED
 
 CASES = [
     {"q": "What changed around Lagos since 2018, and is it significant?", "tools": ["locate_place", "detect_change", "trend_at_point"]},
-    {"q": "Is groundwater really declining in northern India?", "tools_any": ["trend_in_region", "trend_at_point"], "variable": "water"},
+    {"q": "Is groundwater really declining in northern India?", "tools_any": ["trend_in_region", "trend_at_point"], "variable": "groundwater"},
     {"q": "Where is rainfall trending in opposite directions?", "tools": ["find_divergence"], "variable": "rainfall"},
     {"q": "How unusual has the last month been in Nairobi?", "tools": ["locate_place", "now_vs_normal"]},
     {"q": "Is the Arctic warming faster than the rest of the world?", "tools_any": ["trend_in_region"], "variable": "temperature"},
