@@ -34,10 +34,13 @@ await page.getByRole("button", { name: "Find opposite trends" }).click();
 await page.waitForTimeout(5000); await shot("07-divergence");
 
 await page.getByRole("button", { name: "How we know" }).click();
-await page.waitForTimeout(1500); await shot("08-checks");
+await page.waitForURL(/\/methods$/, { timeout: 10000 });
+await page.waitForTimeout(2500); await shot("08-methods");
+await page.goBack();
+await page.waitForURL(/\/explore$/, { timeout: 10000 });
+await page.waitForTimeout(6000);
 
 // Fires: the layer explains itself and a flame opens a details card.
-await page.keyboard.press("Escape");
 await page.getByRole("button", { name: /Fires now/ }).click();
 await page.waitForSelector("text=fires seen burning", { timeout: 60000 });
 await page.waitForTimeout(2500); await shot("09-fires");

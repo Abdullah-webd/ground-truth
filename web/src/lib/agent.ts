@@ -1,4 +1,5 @@
 import type { BBox, ChangeResult, Divergence, Place, VariableId } from "./types";
+import type { EvidenceCard } from "./evidence";
 
 export type UiCommand =
   | { action: "place"; place: Place }
@@ -15,7 +16,8 @@ export type AgentEvent =
   | ({ type: "ui" } & UiCommand)
   | { type: "text"; delta: string }
   | { type: "error"; message: string }
-  | { type: "done"; unverified_numbers: string[]; tool_calls: number; seconds: number };
+  | { type: "evidence"; id: string; card: EvidenceCard }
+  | { type: "done"; unverified_numbers: string[]; numbers_checked?: number; tool_calls: number; seconds: number };
 
 function sessionId(): string {
   try {

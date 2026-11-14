@@ -2,10 +2,11 @@ import { useSyncExternalStore } from "react";
 import { flushSync } from "react-dom";
 
 /** Two routes: the story ("/") and the globe ("/explore"). History API plus View Transitions. */
-export type Route = "/" | "/explore";
+export type Route = "/" | "/explore" | "/methods";
 
 const listeners = new Set<() => void>();
-const read = (): Route => (window.location.pathname.startsWith("/explore") ? "/explore" : "/");
+const read = (): Route =>
+  window.location.pathname.startsWith("/explore") ? "/explore" : window.location.pathname.startsWith("/methods") ? "/methods" : "/";
 let current: Route = read();
 
 function emit() {

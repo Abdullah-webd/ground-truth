@@ -4,7 +4,7 @@ import { useApp } from "../state/store";
 import { Legend } from "./Legend";
 import { PLAIN } from "../lib/plain";
 
-export function Timeline({ variant = "desktop", bottom }: { variant?: "desktop" | "tablet" | "phone"; bottom?: number }) {
+export function Timeline({ variant = "desktop", bottom }: { variant?: "desktop" | "tablet" | "phone"; bottom?: string }) {
   const { variable, mapView, setMapView, year, setYear, playing, setPlaying } = useApp();
   const caseOpen = useApp((s) => s.selection != null);
   const meta = useVariables().data?.find((v) => v.id === variable);
@@ -28,7 +28,7 @@ export function Timeline({ variant = "desktop", bottom }: { variant?: "desktop" 
             ? "pointer-events-none absolute bottom-4 left-4 right-[412px] z-20 flex justify-center"
             : `pointer-events-none absolute bottom-4 left-[392px] z-20 flex justify-center transition-[right] duration-300 ${caseOpen ? "right-[412px]" : "right-4"}`
       }
-      style={variant === "phone" ? { bottom: `calc(${bottom ?? 0}px + 10px + var(--kb, 0px))` } : undefined}
+      style={variant === "phone" ? { bottom: `calc(${bottom ?? "0px"} + 10px + var(--kb, 0px))` } : undefined}
     >
     <div
       data-reveal

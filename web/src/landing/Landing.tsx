@@ -9,6 +9,8 @@ import { useEffect, useRef, useState } from "react";
 import { api, overlayUrl } from "../lib/api";
 import { chance, PLAIN } from "../lib/plain";
 import { navigate } from "../lib/router";
+import { Aisha } from "../components/Aisha";
+import { PERSONAS } from "../lib/personas";
 import { useVariables } from "../lib/useVariables";
 import { VARIABLE_IDS, type VariableId } from "../lib/types";
 import { ProofChart } from "./ProofChart";
@@ -211,6 +213,16 @@ export default function Landing() {
             scrollTrigger: { trigger: ".chat", start: "top 70%", once: true },
           });
 
+          // Who it's for: cards rise in sequence, left to right.
+          gsap.from(".who-item", {
+            yPercent: 18,
+            autoAlpha: 0,
+            stagger: 0.08,
+            duration: 0.8,
+            ease: "expo.out",
+            scrollTrigger: { trigger: ".who-list", start: "top 82%", once: true },
+          });
+
           // 7. Finale: Earth opens from a small window to fill the screen.
           gsap.fromTo(
             ".finale-media",
@@ -270,6 +282,16 @@ export default function Landing() {
         <div className="flex items-center gap-6 text-sm">
           <a href="#how" className="link hidden text-muted sm:inline">How it works</a>
           <a href="#proof" className="link hidden text-muted sm:inline">The proof</a>
+          <a
+            href="/methods"
+            onClick={(e) => {
+              e.preventDefault();
+              navigate("/methods", e.nativeEvent);
+            }}
+            className="link hidden text-muted sm:inline"
+          >
+            Methods & data
+          </a>
           <OpenGlobe className="!px-4 !py-2 !text-sm">Open the globe</OpenGlobe>
         </div>
       </nav>
@@ -289,8 +311,9 @@ export default function Landing() {
             </h1>
             <div className="hero-meta mt-8 flex max-w-[540px] flex-col gap-6">
               <p className="text-[19px] leading-relaxed text-muted">
-                Ground Truth is a detective for our planet. Pick any place and it checks up to 45 years of NASA satellite records, then tells you in plain
-                words what is really changing there, and how sure we can be.
+                An evidence-based Earth observation platform, <strong className="font-semibold text-ink">built for Africa</strong> and open to the whole planet.
+                Ask Aisha, our AI analyst, about any place. She checks up to 45 years of NASA satellite records and shows you the evidence: what's proven,
+                what's only observed, and what's still uncertain.
               </p>
               <div className="flex flex-wrap items-center gap-5">
                 <OpenGlobe />
@@ -476,12 +499,20 @@ export default function Landing() {
         <section data-section className="chat bg-ground px-5 py-[14vh] md:px-10">
           <div className="mx-auto grid max-w-[1280px] items-start gap-12 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
             <div>
+              <div data-reveal className="mb-6 flex items-center gap-4">
+                <Aisha size={84} state="speaking" />
+                <p className="text-sm text-muted">
+                  <strong className="block text-[17px] font-semibold text-ink">Meet Aisha</strong>
+                  Ground Truth's AI analyst
+                </p>
+              </div>
               <h2 data-split className="atlas text-[clamp(44px,5.6vw,92px)] leading-[0.9]">
-                Or just ask, out loud
+                Ask her anything, out loud
               </h2>
               <p data-reveal className="mt-5 text-[19px] leading-relaxed text-muted">
-                Type or talk to the analyst in your own words. It looks things up in NASA's records, flies the globe to the place, and explains the answer.
-                Every number it says is checked against the data, so it can't make figures up.
+                Talk or type in your own words. Aisha looks things up in NASA's records, flies the map to the place, and answers with the evidence: every
+                claim labelled as proven, not proven yet, or observed, with the source, the years and the data you can download. Every number is checked, so she
+                can't make figures up.
               </p>
               {example && (
                 <ul className="chat-tools mt-8 flex flex-col gap-2 text-[15px]" aria-label="What the analyst did">
@@ -503,7 +534,7 @@ export default function Landing() {
                 <>
                   <p className="chat-q self-end rounded-2xl rounded-br-md bg-ink px-5 py-3.5 text-[17px] text-paper">{example.question}</p>
                   <div className="rounded-2xl rounded-bl-md border border-line bg-paper px-6 py-5">
-                    <p className="atlas mb-2 text-[16px] text-muted">Ground Truth analyst</p>
+                    <p className="atlas mb-2 text-[16px] text-muted">Aisha, AI analyst</p>
                     <p className="chat-a whitespace-pre-line text-[17px] leading-relaxed">{example.answer.replace(/\*\*/g, "")}</p>
                   </div>
                   <p className="text-[13px] text-faint">A real answer from our test run, word for word.</p>
@@ -512,6 +543,27 @@ export default function Landing() {
                 <div className="h-64 animate-pulse rounded-2xl bg-paper" />
               )}
             </div>
+          </div>
+        </section>
+
+        {/* Who it's for */}
+        <section data-section className="px-5 py-[14vh] md:px-10">
+          <div className="mx-auto max-w-[1280px]">
+            <h2 data-split className="atlas max-w-[900px] text-[clamp(44px,6vw,104px)] leading-[0.9]">
+              For the people living with the change
+            </h2>
+            <p data-reveal className="mt-5 max-w-[680px] text-[19px] leading-relaxed text-muted">
+              Built first for Nigeria and Africa, where the changes are felt most and the data is hardest to reach. Open to everyone, everywhere.
+            </p>
+            <ul className="who-list mt-12 grid gap-px overflow-hidden rounded-2xl border border-line bg-line md:grid-cols-5">
+              {PERSONAS.map((p) => (
+                <li key={p.id} className="who-item flex flex-col gap-3 bg-paper p-5">
+                  <p className="atlas text-[26px]">{p.label}</p>
+                  <p className="text-[15px] leading-snug text-muted">{p.why}</p>
+                  <p className="mt-auto rounded-lg bg-ground px-3 py-2 text-[14px] leading-snug text-ink">"{p.questions[0]}"</p>
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
 
@@ -536,7 +588,19 @@ export default function Landing() {
         <div className="mx-auto flex max-w-[1280px] flex-col justify-between gap-8 md:flex-row">
           <div data-reveal>
             <p className="atlas text-[24px] text-ink">Ground Truth</p>
-            <p className="mt-2 max-w-[360px]">Built for the NASA Space Apps Challenge 2026: Be an Earth System Trend Detective.</p>
+            <p className="mt-2 max-w-[360px]">
+              Built for the NASA Space Apps Challenge 2026: Be an Earth System Trend Detective.{" "}
+              <a
+                href="/methods"
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate("/methods", e.nativeEvent);
+                }}
+                className="link text-ink"
+              >
+                Methods & data
+              </a>
+            </p>
           </div>
           <div data-reveal className="max-w-[640px] leading-relaxed">
             <p className="font-semibold text-ink">Data</p>

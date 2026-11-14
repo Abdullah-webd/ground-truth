@@ -2,7 +2,7 @@ import { create } from "zustand";
 import type { BBox, ChangeResult, Divergence, Fire, VariableId } from "../lib/types";
 import { initialLayout } from "../lib/layout";
 
-export type SheetSnap = "peek" | "half" | "full";
+export type SheetSnap = "hidden" | "peek" | "half" | "full";
 const phone = initialLayout() === "phone";
 
 export type MapView = "trend" | "year";
@@ -33,6 +33,14 @@ interface State {
   layersOpen: boolean;
   /** Time the analyst last moved the map (phones drop the sheet to peek for a moment). */
   flightAt: number;
+  /** What Aisha is doing (voice), for her character anywhere on screen. */
+  aishaState: "idle" | "listening" | "thinking" | "speaking";
+  setAishaState: (s: "idle" | "listening" | "thinking" | "speaking") => void;
+  /** Ask the panel to start or stop a voice conversation (e.g. from the phone's big Aisha button). */
+  voiceRequest: number;
+  requestVoice: () => void;
+  voiceActive: boolean;
+  setVoiceActive: (on: boolean) => void;
   peekForFlight: () => void;
   setLayersOpen: (on: boolean) => void;
   setShowLabels: (on: boolean) => void;
@@ -79,10 +87,17 @@ export const useApp = create<State>((set) => ({
   flatMap: phone,
   // The flat map can't show 3D buildings, so switching to it turns them off.
   setFlatMap: (flatMap) => set(flatMap ? { flatMap, buildings: false } : { flatMap }),
-  sheet: "peek",
+  // Phones start with the map only: Aisha's big button is the way in.
+  sheet: phone ? "hidden" : "peek",
   setSheet: (sheet) => set({ sheet }),
   layersOpen: false,
   flightAt: 0,
+  aishaState: "idle",
+  setAishaState: (aishaState) => set({ aishaState }),
+  voiceRequest: 0,
+  requestVoice: () => set((s) => ({ voiceRequest: s.voiceRequest + 1 })),
+  voiceActive: false,
+  setVoiceActive: (voiceActive) => set({ voiceActive }),
   peekForFlight: () => {
     set({ sheet: "peek", flightAt: Date.now() });
     window.setTimeout(() => {

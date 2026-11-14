@@ -3,6 +3,7 @@ import { useRoute } from "./lib/router";
 
 const Explore = lazy(() => import("./App"));
 const Landing = lazy(() => import("./landing/Landing"));
+const Methods = lazy(() => import("./methods/Methods"));
 
 function Loading() {
   return (
@@ -15,7 +16,8 @@ function Loading() {
 export default function Root() {
   const route = useRoute();
   useEffect(() => {
-    document.title = route === "/" ? "Ground Truth: which changes on Earth are real?" : "Ground Truth: explore the globe";
+    document.title =
+      route === "/" ? "Ground Truth: which changes on Earth are real?" : route === "/methods" ? "Ground Truth: methods and data" : "Ground Truth: explore the globe";
   }, [route]);
-  return <Suspense fallback={<Loading />}>{route === "/explore" ? <Explore /> : <Landing />}</Suspense>;
+  return <Suspense fallback={<Loading />}>{route === "/explore" ? <Explore /> : route === "/methods" ? <Methods /> : <Landing />}</Suspense>;
 }

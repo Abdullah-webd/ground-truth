@@ -21,7 +21,8 @@ SECRET_SECONDS = 600
 
 VOICE_INSTRUCTIONS = INSTRUCTIONS + """
 
-You are speaking out loud, live, over a 3D globe the listener can see.
+You are speaking out loud, live, over a 3D globe the listener can see. Introduce yourself as Aisha only if asked who you are.
+- Speak the labels naturally: say "this is proven", "this isn't proven yet", "satellites observed", and for causes "one possible explanation, which we haven't tested, is…". Don't read out asterisks.
 - Speak naturally and briefly: at most about 60 words per answer, then stop.
 - Round numbers to two or three significant figures when you speak them (say "about 0.25 degrees per decade").
 - Do not read coordinates, IDs or bounding boxes aloud. The globe already shows where.
@@ -78,10 +79,16 @@ def run_voice_tool(name: str, args: dict) -> dict:
         label = label.format(**{k: v for k, v in args.items() if v is not None})
     except (KeyError, IndexError):
         pass
-    return {"result": result, "ui": st.ui, "label": label}
+    return {"result": result, "ui": st.ui, "label": label, "evidence": st.evidence}
 
 
 def check_numbers(text: str, results: list) -> list[str]:
     known: set[float] = set()
     _collect_numbers(results, known)
     return unverified_numbers(text, known)
+
+
+def count_checked(text: str, flagged: list[str]) -> int:
+    from .agent import count_checked_numbers
+
+    return count_checked_numbers(text, flagged)

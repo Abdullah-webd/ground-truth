@@ -50,6 +50,7 @@ export interface PointTrend {
   source: string;
   method: string;
   trend_line: [[number, number], [number, number]] | null;
+  slope_ci_per_decade?: [number, number] | null;
 }
 
 export interface RegionTrend {

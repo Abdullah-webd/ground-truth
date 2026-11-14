@@ -39,6 +39,10 @@ CASES = [
     {"q": "How hot has Punjab been over the last two years compared with normal?", "tools": ["recent_history", "trend_at_point"],
      "no_lecture": True},
     {"q": "How unusual is this month in Phoenix?", "tools_any": ["now_vs_normal", "recent_history"], "no_lecture": True},
+    # The demo journey: a farmer near Abuja asks by voice; the answer must be labelled evidence.
+    {"q": "Is it getting drier where I farm, near Abuja?", "tools_any": ["trend_at_point", "trend_in_region"], "variable": "rainfall",
+     "labelled": True, "never": "API key|another dataset"},
+    {"q": "Is Lagos losing its green spaces?", "tools_any": ["trend_at_point", "detect_change", "trend_in_region"], "labelled": True},
 ]
 
 # Repeating "this is not a trend" in every recent-weather answer is a lecture, not an answer.
@@ -75,6 +79,9 @@ def run_case(case: dict) -> dict:
         checks["no_referral"] = not re.search(case["never"], answer, re.IGNORECASE)
     if case.get("no_lecture"):
         checks["no_lecture"] = len(LECTURE.findall(answer)) == 0
+    if case.get("labelled"):
+        # Evidence-first answers label their claims (Proven / Not proven yet / Observed).
+        checks["labelled_claims"] = bool(re.search(r"\*\*(Proven|Not proven yet|Observed)", answer))
     if "says" in case:
         checks["right_conclusion"] = bool(re.search(case["says"], answer, re.IGNORECASE))
     checks["numbers_from_tools"] = bool(done) and not done["unverified_numbers"]

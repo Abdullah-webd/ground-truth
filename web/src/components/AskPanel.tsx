@@ -4,6 +4,11 @@ import { askAgent, type AgentEvent } from "../lib/agent";
 import { applyCommand, newTurnContext, type TurnContext } from "../lib/applyCommand";
 import { VoiceSession, type VoiceState } from "../lib/voice";
 import { useApp } from "../state/store";
+import { CheckedBadge, EvidenceCard } from "./EvidenceCard";
+import { TIER } from "../lib/evidence";
+import type { EvidenceCard as EvidenceCardT } from "../lib/evidence";
+import { Aisha, type AishaState } from "./Aisha";
+import { PERSONAS, STARTERS } from "../lib/personas";
 
 interface Step {
   id: string;
@@ -19,6 +24,8 @@ interface Turn {
   error?: string;
   done: boolean;
   unverified?: string[];
+  checked?: number;
+  evidence?: EvidenceCardT[];
   voice?: boolean;
 }
 
@@ -30,28 +37,45 @@ const VOICE_LABEL: Record<VoiceState, string> = {
   closed: "Talk",
 };
 
-const SUGGESTIONS = [
-  "What changed around Lagos since 2018, and is it real?",
-  "Is groundwater really disappearing in northern India?",
-  "Is Greenland losing ice?",
-  "How unusual is this month in Nairobi?",
-];
+const LABELS: Record<string, string> = {
+  proven: "proven",
+  "not proven yet": "not_proven",
+  "not proven": "not_proven",
+  observed: "observed",
+};
 
-/** Inline **bold**. */
+/** Inline **bold**; Aisha's claim labels (**Proven**, **Not proven yet**, **Observed**) become tier tags. */
 function Inline({ text }: { text: string }) {
   return (
     <>
-      {text.split(/(\*\*[^*]+\*\*)/g).map((part, j): ReactNode =>
-        part.startsWith("**") && part.endsWith("**") ? (
+      {text.split(/(\*\*[^*]+\*\*)/g).map((part, j): ReactNode => {
+        if (!(part.startsWith("**") && part.endsWith("**"))) return <Fragment key={j}>{part}</Fragment>;
+        const inner = part.slice(2, -2);
+        const key = inner.replace(/[:.]\s*$/, "").trim().toLowerCase();
+        const tier = LABELS[key];
+        if (tier)
+          return (
+            <span key={j} className={`mr-0.5 inline-block rounded px-1.5 py-px align-[1px] text-[11px] font-semibold ${TIER[tier].cls}`} title={TIER[tier].hint}>
+              {TIER[tier].text}
+            </span>
+          );
+        if (key === "possible explanation" || key === "uncertain") return <strong key={j} className="font-semibold text-muted">{inner}</strong>;
+        return (
           <strong key={j} className="font-semibold text-ink">
-            {part.slice(2, -2)}
+            {inner}
           </strong>
-        ) : (
-          <Fragment key={j}>{part}</Fragment>
-        ),
-      )}
+        );
+      })}
     </>
   );
+}
+
+/** "Possible explanation" and "Uncertain" lines sit in their own boxes, apart from the evidence. */
+function boxFor(line: string): "explanation" | "uncertain" | null {
+  const l = line.replace(/^[-•*]\s+/, "").toLowerCase();
+  if (l.startsWith("**possible explanation")) return "explanation";
+  if (l.startsWith("**uncertain")) return "uncertain";
+  return null;
 }
 
 /** Minimal formatting for the analyst's prose: paragraphs, "- " bullet lists and **bold**. */
@@ -75,7 +99,17 @@ function Prose({ text }: { text: string }) {
       {blocks
         .filter((b) => b.lines.length)
         .map((b, i) =>
-          b.list ? (
+          !b.list && boxFor(b.lines[0]) ? (
+            <p
+              key={i}
+              className={`mb-2 rounded-lg border border-dashed px-2.5 py-1.5 text-[13px] last:mb-0 ${
+                boxFor(b.lines[0]) === "explanation" ? "border-line text-muted" : "border-line/70 text-faint"
+              }`}
+            >
+              <Inline text={b.lines.join(" ")} />
+              {boxFor(b.lines[0]) === "explanation" && <span className="block text-[11px] text-faint">Not tested by Ground Truth's data.</span>}
+            </p>
+          ) : b.list ? (
             <ul key={i} className="mb-2 flex flex-col gap-1 pl-4 last:mb-0">
               {b.lines.map((l, j) => (
                 <li key={j} className="list-disc">
@@ -154,8 +188,11 @@ export function AskPanel() {
         case "error":
           update(id, (t) => ({ ...t, error: e.message, done: true }));
           break;
+        case "evidence":
+          update(id, (t) => ({ ...t, evidence: [...(t.evidence ?? []), e.card] }));
+          break;
         case "done":
-          update(id, (t) => ({ ...t, done: true, unverified: e.unverified_numbers }));
+          update(id, (t) => ({ ...t, done: true, unverified: e.unverified_numbers, checked: e.numbers_checked }));
           break;
       }
     };
@@ -210,9 +247,13 @@ export function AskPanel() {
         const t = currentVoiceTurn();
         update(t.id, (x) => ({ ...x, answer: x.answer + d }));
       },
-      onAnswerDone: (unverified) => {
+      onAnswerDone: (unverified, checked) => {
         const t = voiceTurn.current;
-        if (t) update(t.id, (x) => ({ ...x, done: true, unverified }));
+        if (t) update(t.id, (x) => ({ ...x, done: true, unverified, checked }));
+      },
+      onEvidence: (_id, card) => {
+        const t = currentVoiceTurn();
+        update(t.id, (x) => ({ ...x, evidence: [...(x.evidence ?? []), card] }));
       },
       onError: (message) => {
         const t = currentVoiceTurn();
@@ -232,76 +273,91 @@ export function AskPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingAsk, busy]);
 
+  // The phone's big Aisha button (and anything else) can start or stop a voice conversation.
+  const voiceRequest = useApp((st) => st.voiceRequest);
+  const firstRequest = useRef(voiceRequest);
+  useEffect(() => {
+    if (voiceRequest === firstRequest.current) return;
+    firstRequest.current = voiceRequest;
+    toggleVoice();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceRequest]);
+  useEffect(() => {
+    const st = useApp.getState();
+    st.setVoiceActive(voiceState !== "closed");
+    st.setAishaState(
+      voiceState === "listening" ? "listening" : voiceState === "speaking" ? "speaking" : voiceState === "thinking" || busy ? "thinking" : "idle",
+    );
+  }, [voiceState, busy]);
+
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
     void send(text);
   };
 
+  const aishaState: AishaState =
+    voiceState === "listening" ? "listening" : voiceState === "speaking" ? "speaking" : voiceState === "thinking" || busy ? "thinking" : "idle";
+
   return (
     <section aria-label="Ask the analyst" className="flex flex-col gap-3">
-      <form onSubmit={onSubmit} className="flex flex-col gap-2">
-        <label htmlFor="ask" className="flex flex-col">
-          <span className="atlas text-[24px] text-ink">Ask the analyst</span>
-          <span className="mt-1 text-xs text-muted">Type or talk, in your own words. It checks NASA's records, moves the globe and explains what it finds.</span>
-        </label>
-        <textarea
-          id="ask"
-          rows={2}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              void send(text);
-            }
-          }}
-          placeholder="Is it getting hotter where I live?"
-          className="resize-none rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-faint focus:border-ink focus:outline-none"
-        />
-        <div className="flex items-center justify-between gap-2">
-          <button
-            type="button"
-            onClick={toggleVoice}
-            aria-pressed={voiceState !== "closed"}
-            title="Talk to the analyst (OpenAI gpt-realtime-2.1). Press again to hang up."
-            className={`btn flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm ${
-              voiceState === "closed" ? "btn-quiet border-line text-ink" : "border-ink bg-mark text-on-mark"
-            }`}
-          >
-            <span className="relative grid h-3.5 w-3.5 place-items-center" aria-hidden>
-              {voiceState !== "closed" && voiceState !== "connecting" && (
-                <motion.span
-                  className="absolute inset-0 rounded-full bg-ink/25"
-                  animate={{ scale: voiceState === "speaking" ? [1, 1.7, 1] : [1, 1.35, 1] }}
-                  transition={{ duration: voiceState === "speaking" ? 0.9 : 1.6, repeat: Infinity, ease: "easeInOut" }}
-                />
-              )}
-              <svg viewBox="0 0 14 14" className="relative h-3.5 w-3.5">
-                <rect x="4.5" y="1" width="5" height="8" rx="2.5" fill="currentColor" />
-                <path d="M2.5 6.5a4.5 4.5 0 0 0 9 0M7 11v2" fill="none" stroke="currentColor" strokeWidth="1.3" />
-              </svg>
+      <form onSubmit={onSubmit} className="flex flex-col gap-2.5">
+        <div className="flex items-center gap-3">
+          <Aisha state={aishaState} size={58} className="shrink-0" />
+          <label htmlFor="ask" className="flex min-w-0 flex-col">
+            <span className="flex items-baseline gap-2">
+              <span className="atlas text-[26px] text-ink">Aisha</span>
+              <span className="rounded bg-panel-2 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted">AI analyst</span>
             </span>
-            {voiceState === "closed" ? "Talk" : VOICE_LABEL[voiceState]}
-          </button>
-          <button type="submit" disabled={busy || !text.trim()} className="btn btn-accent rounded-lg bg-accent px-4 py-1.5 text-sm font-semibold text-accent-ink disabled:opacity-40">
-            {busy ? "Investigating…" : "Ask"}
+            <span className="text-xs leading-snug text-muted">Ask me anything about where you live. I answer only from NASA records and show you the evidence.</span>
+          </label>
+        </div>
+        <button
+          type="button"
+          onClick={toggleVoice}
+          aria-pressed={voiceState !== "closed"}
+          title="Talk to Aisha out loud. Press again to hang up."
+          className={`btn flex h-12 items-center justify-center gap-2.5 rounded-xl text-[15px] font-semibold ${
+            voiceState === "closed" ? "btn-accent bg-accent text-accent-ink" : "bg-mark text-on-mark"
+          }`}
+        >
+          <span className="relative grid h-4 w-4 place-items-center" aria-hidden>
+            {voiceState !== "closed" && voiceState !== "connecting" && (
+              <motion.span
+                className="absolute -inset-1 rounded-full bg-on-mark/20"
+                animate={{ scale: voiceState === "speaking" ? [1, 1.7, 1] : [1, 1.35, 1] }}
+                transition={{ duration: voiceState === "speaking" ? 0.9 : 1.6, repeat: Infinity, ease: "easeInOut" }}
+              />
+            )}
+            <svg viewBox="0 0 14 14" className="relative h-4 w-4">
+              <rect x="4.5" y="1" width="5" height="8" rx="2.5" fill="currentColor" />
+              <path d="M2.5 6.5a4.5 4.5 0 0 0 9 0M7 11v2" fill="none" stroke="currentColor" strokeWidth="1.3" />
+            </svg>
+          </span>
+          {voiceState === "closed" ? "Talk to Aisha" : `${VOICE_LABEL[voiceState]}, tap to end`}
+        </button>
+        <div className="flex items-end gap-2">
+          <textarea
+            id="ask"
+            rows={2}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                void send(text);
+              }
+            }}
+            placeholder="Or type: Is it getting drier where I farm?"
+            className="min-w-0 flex-1 resize-none rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-faint focus:border-ink focus:outline-none"
+          />
+          <button type="submit" disabled={busy || !text.trim()} className="btn btn-quiet h-10 shrink-0 rounded-lg border border-line px-3.5 text-sm font-semibold text-ink disabled:opacity-40">
+            {busy ? "Working…" : "Ask"}
           </button>
         </div>
-        <p className="text-[11px] text-faint">Every number it says is checked against the NASA data, so it can't make figures up.</p>
+        <p className="text-[11px] text-faint">Every answer comes with its evidence, and every number is checked against the NASA data.</p>
       </form>
 
-      {turns.length === 0 && (
-        <ul className="flex flex-col gap-1" aria-label="Example questions">
-          <li className="px-2 text-xs font-medium text-muted">Not sure what to ask? Try one:</li>
-          {SUGGESTIONS.map((s) => (
-            <li key={s}>
-              <button type="button" onClick={() => void send(s)} className="btn btn-quiet w-full rounded-md px-2 py-1.5 text-left text-sm text-muted">
-                {s}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+      {turns.length === 0 && <QuickStarts onAsk={(q) => void send(q)} />}
 
       <div className="flex flex-col gap-4" aria-live="polite">
         {turns.map((t, i) => (
@@ -336,11 +392,17 @@ export function AskPanel() {
               </motion.div>
             )}
             {t.error && <p role="alert" className="text-sm text-bad">{t.error}</p>}
-            {t.done && t.unverified && t.unverified.length > 0 && (
-              <p className="text-[11px] text-bad">
-                Check: {t.unverified.join(", ")} did not come from a data tool. Treat with caution.
-              </p>
+            {t.evidence && t.evidence.length > 0 && (
+              <section aria-label="The evidence" className="flex flex-col gap-1.5">
+                <p className="text-xs font-semibold text-muted">The evidence ({t.evidence.length})</p>
+                <ul className="flex flex-col gap-1.5">
+                  {dedupe(t.evidence).map((c, k) => (
+                    <EvidenceCard key={k} card={c} index={k} />
+                  ))}
+                </ul>
+              </section>
             )}
+            {t.done && <CheckedBadge checked={t.checked} unverified={t.unverified} />}
           </article>
         ))}
         <div ref={endRef} />
@@ -366,5 +428,52 @@ function StepIcon({ state }: { state: Step["state"] }) {
     <svg className="mt-0.5 h-3 w-3 shrink-0 text-bad" viewBox="0 0 12 12" aria-label="Failed">
       <path d="M3 3l6 6M9 3L3 9" stroke="currentColor" strokeWidth="1.6" />
     </svg>
+  );
+}
+
+/** The same record can be consulted twice in one answer; show it once. */
+function dedupe(cards: EvidenceCardT[]): EvidenceCardT[] {
+  const seen = new Set<string>();
+  return cards.filter((c) => {
+    const key = c.kind === "trend" ? `${c.variable}|${c.scope}|${JSON.stringify(c.place)}` : `${c.topic}|${JSON.stringify(c.place)}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+/** "Who are you?" Tailored starter questions for each kind of person (Nigeria and Africa first). */
+function QuickStarts({ onAsk }: { onAsk: (q: string) => void }) {
+  const [who, setWho] = useState<string | null>(null);
+  const persona = PERSONAS.find((p) => p.id === who);
+  const questions = persona ? persona.questions : STARTERS;
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-xs font-medium text-muted">Who are you? I'll suggest questions for you.</p>
+      <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Who are you?">
+        {PERSONAS.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            role="radio"
+            aria-checked={who === p.id}
+            onClick={() => setWho(who === p.id ? null : p.id)}
+            className={`btn h-8 rounded-full border px-3 text-[13px] ${who === p.id ? "border-accent bg-accent text-accent-ink" : "border-line text-muted"}`}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+      {persona && <p className="text-[12px] leading-snug text-faint">{persona.why}</p>}
+      <ul className="flex flex-col gap-1" aria-label="Suggested questions">
+        {questions.map((q) => (
+          <li key={q}>
+            <button type="button" onClick={() => onAsk(q)} className="btn btn-quiet w-full rounded-lg border border-line/60 px-2.5 py-2 text-left text-[13px] text-ink">
+              {q}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

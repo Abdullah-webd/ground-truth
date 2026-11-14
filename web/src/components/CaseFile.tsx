@@ -5,7 +5,9 @@ import { api } from "../lib/api";
 import { exportCaseCard } from "../lib/exportCard";
 import { formatLatLon, formatP, formatRate, shortPlace } from "../lib/format";
 import { certainty, chance, explain, nowSentence, PLAIN } from "../lib/plain";
-import { VARIABLE_IDS, type Fire, type PointTrend } from "../lib/types";
+import { VARIABLE_IDS, type Fire, type PointTrend, type VariableId } from "../lib/types";
+import { downloadText, evidenceCsv, fmtNum } from "../lib/evidence";
+import { navigate } from "../lib/router";
 import { fireSize, hoursAgo } from "../lib/fire";
 import { Flame } from "./FirePanel";
 import { useVariables } from "../lib/useVariables";
@@ -111,9 +113,92 @@ function Sureness({ t }: { t: PointTrend }) {
         <span>Certain</span>
       </div>
       <p className="mt-1 text-[11px] text-faint">The tick marks the 1-in-20 line scientists use to call a trend real.</p>
+      {t.slope_ci_per_decade && (
+        <p className="tabular mt-2 text-[13px] leading-snug text-ink">
+          The rate is {formatRate(t.slope_per_decade, t.units)}, and is <strong className="font-semibold">likely between {fmtNum(t.slope_ci_per_decade[0])} and{" "}
+          {fmtNum(t.slope_ci_per_decade[1])} {t.units}</strong> per decade (95 % range).
+          {t.significant ? " The whole range is on one side of zero, which is why it counts as proven." : " The range includes zero, so it could be no change at all."}
+        </p>
+      )}
     </div>
   );
 }
+
+/** Where the numbers come from, what "proven" means here, what we can't tell, and the data itself. */
+function EvidenceNotes({ t, variable, lat, lon }: { t: PointTrend; variable: VariableId; lat: number; lon: number }) {
+  const src = SOURCE[variable];
+  const km = Math.round(t.cell.size_deg * 111);
+  const uncertain = [
+    variable === "water"
+      ? "GRACE sees water changes over areas about 300 km across, so this describes the wider region, not one farm or well."
+      : `This is the average for a grid square about ${km} km across, not one street or farm.`,
+    `The record covers ${t.period[0]}–${t.period[1]}. A longer record could prove (or rule out) a trend that isn't clear yet.`,
+    "This shows what changed and how surely. It does not prove why.",
+  ];
+  const download = () =>
+    downloadText(
+      `ground-truth-${variable}-${lat.toFixed(2)}_${lon.toFixed(2)}.csv`,
+      evidenceCsv({
+        kind: "trend",
+        tier: t.significant ? "proven" : t.tested ? "not_proven" : "no_data",
+        variable,
+        label: t.label,
+        scope: "point",
+        place: { lat, lon },
+        source: src.name,
+        source_url: src.url,
+        source_detail: t.source,
+        method: t.method,
+        period: t.period,
+        units: t.units,
+        slope_per_decade: t.slope_per_decade,
+        ci_per_decade: t.slope_ci_per_decade ?? null,
+        total_change: null,
+        p: t.q,
+        chance_luck: null,
+        years: t.years,
+        values: t.values,
+        trend_line: t.trend_line,
+        cell: t.cell,
+      }),
+    );
+  return (
+    <section aria-label="Evidence and uncertainty" className="flex flex-col gap-2 rounded-lg border border-line px-4 py-3 text-[13px] leading-snug">
+      <p className="text-xs font-semibold text-muted">Where this comes from</p>
+      <p className="text-ink">
+        <a href={src.url} target="_blank" rel="noopener" className="link font-medium">
+          {src.name}
+        </a>
+        , yearly values {t.period[0]}–{t.period[1]}.
+      </p>
+      <p className="text-muted">
+        <strong className="font-semibold text-ink">"Proven"</strong> means the trend passed a statistical test at 95 % confidence, after correcting for
+        testing thousands of places at once and for one year resembling the next.
+      </p>
+      <p className="mt-1 text-xs font-semibold text-muted">What we can't tell</p>
+      <ul className="flex list-disc flex-col gap-1 pl-4 text-muted">
+        {uncertain.map((u) => (
+          <li key={u}>{u}</li>
+        ))}
+      </ul>
+      <div className="mt-1 flex flex-wrap gap-2">
+        <button type="button" onClick={download} className="btn btn-quiet h-9 rounded-lg border border-line px-3 text-[13px] text-ink">
+          Download the data (CSV)
+        </button>
+        <a href="/methods" onClick={(e) => { e.preventDefault(); navigate("/methods", e.nativeEvent); }} className="btn btn-quiet inline-flex h-9 items-center rounded-lg px-2 text-[13px] text-muted">
+          How we test
+        </a>
+      </div>
+    </section>
+  );
+}
+
+const SOURCE: Record<VariableId, { name: string; url: string }> = {
+  temperature: { name: "NASA GISTEMP v4", url: "https://data.giss.nasa.gov/gistemp/" },
+  vegetation: { name: "NASA MODIS Terra (MOD13C1)", url: "https://lpdaac.usgs.gov/products/mod13c1v061/" },
+  rainfall: { name: "NASA GPM IMERG V07", url: "https://gpm.nasa.gov/data/imerg" },
+  water: { name: "NASA GRACE / GRACE-FO (JPL mascons)", url: "https://grace.jpl.nasa.gov/data/get-data/jpl_global_mascons/" },
+};
 
 function PointCase({ lat, lon, name }: { lat: number; lon: number; name?: string }) {
   const { variable, setVariable } = useApp();
@@ -173,6 +258,7 @@ function PointCase({ lat, lon, name }: { lat: number; lon: number; name?: string
                 </p>
               </div>
               {t.tested && <Sureness t={t} />}
+              {t.tested && <EvidenceNotes t={t} variable={variable} lat={lat} lon={lon} />}
             </>
           )}
         </section>

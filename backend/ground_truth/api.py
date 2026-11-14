@@ -236,7 +236,8 @@ class VoiceCheck(BaseModel):
 
 @app.post("/api/voice/check")
 def voice_check(body: VoiceCheck):
-    return {"unverified_numbers": voice.check_numbers(body.text, body.results)}
+    flagged = voice.check_numbers(body.text, body.results)
+    return {"unverified_numbers": flagged, "numbers_checked": voice.count_checked(body.text, flagged)}
 
 
 # ---------------------------------------------------------------- the website (production)

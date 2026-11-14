@@ -51,7 +51,7 @@ export function BottomSheet({
 
   const full = Math.round(vh * FULL);
   const visible = useCallback(
-    (s: SheetSnap) => (s === "full" ? full : s === "half" ? Math.round(vh * HALF) : Math.min(peek, full)),
+    (s: SheetSnap) => (s === "full" ? full : s === "half" ? Math.round(vh * HALF) : s === "hidden" ? 0 : Math.min(peek, full)),
     [full, vh, peek],
   );
   const offsetFor = useCallback((s: SheetSnap) => full - visible(s), [full, visible]);
@@ -75,7 +75,7 @@ export function BottomSheet({
   const onDragEnd = (_: unknown, info: PanInfo) => {
     // Project where a flick would land, then rest at the nearest height.
     const projected = y.get() + info.velocity.y * 0.18;
-    const options: SheetSnap[] = ["full", "half", "peek"];
+    const options: SheetSnap[] = ["full", "half", "peek", "hidden"];
     let best: SheetSnap = snap;
     let bestD = Infinity;
     for (const s of options) {
@@ -99,7 +99,7 @@ export function BottomSheet({
     if ((t.tagName === "TEXTAREA" || t.tagName === "INPUT") && snap !== "full") onSnap("full");
   };
 
-  const cycle = () => onSnap(snap === "peek" ? "half" : snap === "half" ? "full" : "peek");
+  const cycle = () => onSnap(snap === "peek" || snap === "hidden" ? "half" : snap === "half" ? "full" : "peek");
 
   return (
     <motion.section
@@ -107,13 +107,14 @@ export function BottomSheet({
       drag="y"
       dragListener={false}
       dragControls={controls}
-      dragConstraints={{ top: 0, bottom: full - Math.min(peek, full) }}
+      dragConstraints={{ top: 0, bottom: full }}
       dragElastic={0.06}
       dragMomentum={false}
       onDragEnd={onDragEnd}
       onFocus={onFocus}
       style={{ y, height: full, bottom: "var(--kb, 0px)" }}
-      className="panel-shadow pointer-events-auto fixed inset-x-0 z-30 flex flex-col rounded-t-[22px] border-t border-line bg-panel"
+      aria-hidden={snap === "hidden"}
+      className={`panel-shadow fixed inset-x-0 z-30 flex flex-col rounded-t-[22px] border-t border-line bg-panel ${snap === "hidden" ? "pointer-events-none" : "pointer-events-auto"}`}
     >
       <div
         ref={headerRef}
@@ -123,7 +124,7 @@ export function BottomSheet({
         <button
           type="button"
           onClick={cycle}
-          aria-label={`Drag or tap to resize the panel (now ${snap === "peek" ? "small" : snap === "half" ? "half height" : "full height"})`}
+          aria-label={`Drag or tap to resize the panel (now ${snap === "peek" ? "small" : snap === "half" ? "half height" : snap === "hidden" ? "hidden" : "full height"}). Drag down to hide it.`}
           className="grid h-6 w-16 place-items-center"
         >
           <span className="h-1.5 w-10 rounded-full bg-line" aria-hidden />

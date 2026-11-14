@@ -198,3 +198,40 @@ def verdict(slope_per_decade: float, units: str, p: float, significant: bool,
         return f"{label}: statistically significant {direction}, {rate} ({span}), p {format_p(p)}."
     return (f"{label}: change of {rate} ({span}) is not statistically significant "
             f"(p {format_p(p)}); it could be natural variability.")
+
+
+def sen_slope_ci(values, times=None, alpha: float = 0.05) -> tuple[float, float] | None:
+    """Two-sided (1 - alpha) confidence range for the Theil-Sen slope of one series (per unit of `times`).
+
+    Gilbert (1987, ch. 16): rank the n' pairwise slopes; the limits are the slopes at ranks
+    (n' - C)/2 and (n' + C)/2 + 1 with C = z_(1-alpha/2) * sqrt(Var(S)). Var(S) is the same
+    autocorrelation-inflated variance the significance test uses, so the range and "proven" agree.
+    """
+    from scipy.stats import norm
+
+    y = np.asarray(values, dtype=float)
+    t = np.arange(len(y), dtype=float) if times is None else np.asarray(times, dtype=float)
+    ok = np.isfinite(y)
+    y, t = y[ok], t[ok]
+    n = len(y)
+    if n < 4:
+        return None
+    i, j = np.triu_indices(n, k=1)
+    dt = t[j] - t[i]
+    slopes = np.sort((y[j] - y[i])[dt != 0] / dt[dt != 0])
+    n_pairs = len(slopes)
+    if n_pairs < 3:
+        return None
+    res = mann_kendall(y[None, :], times=t)
+    var_s = float(res.var_s[0] * (res.var_ratio[0] if np.isfinite(res.var_ratio[0]) else 1.0))
+    c = float(norm.ppf(1 - alpha / 2) * np.sqrt(max(var_s, 0.0)))
+    lo_rank = (n_pairs - c) / 2           # 1-based ranks, possibly fractional: interpolate
+    hi_rank = (n_pairs + c) / 2 + 1
+
+    def at(rank: float) -> float:
+        k = min(max(rank - 1, 0.0), n_pairs - 1.0)
+        f = int(np.floor(k))
+        frac = k - f
+        return float(slopes[f] + (slopes[min(f + 1, n_pairs - 1)] - slopes[f]) * frac)
+
+    return at(lo_rank), at(hi_rank)

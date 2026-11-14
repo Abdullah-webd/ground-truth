@@ -48,9 +48,9 @@ export const PLAIN: Record<VariableId, PlainVariable> = {
     relative: true,
   },
   water: {
-    name: "Underground water",
-    question: "Is water disappearing from the ground?",
-    what: "All the water stored in the land: soil, rivers, lakes, ice and deep groundwater. NASA's GRACE satellites weigh it from orbit.",
+    name: "Water in the land",
+    question: "Is the land losing or gaining water?",
+    what: "All the water stored in the land added together: groundwater, soil moisture, rivers, lakes, snow and ice. NASA's GRACE satellites weigh it from orbit by sensing tiny changes in Earth's gravity. They see changes over areas about 300 km across, so this is a regional picture, not one farm or well.",
     satellite: "NASA GRACE satellites",
     up: "gaining water",
     down: "losing water",

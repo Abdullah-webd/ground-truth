@@ -1,4 +1,5 @@
 import type { UiCommand } from "./agent";
+import type { EvidenceCard } from "./evidence";
 
 /** Live voice with OpenAI gpt-realtime-2.1 over WebRTC. Tool calls run on our backend. */
 
@@ -12,7 +13,8 @@ export interface VoiceHandlers {
   onToolDone: (id: string, ok: boolean, error?: string) => void;
   onUi: (cmd: UiCommand) => void;
   onAssistantDelta: (delta: string) => void;
-  onAnswerDone: (unverified: string[]) => void;
+  onAnswerDone: (unverified: string[], checked?: number) => void;
+  onEvidence: (id: string, card: EvidenceCard) => void;
   onError: (message: string) => void;
 }
 
@@ -169,6 +171,7 @@ export class VoiceSession {
       if (!res.ok) throw new Error(body?.error?.message ?? `Tool failed (${res.status})`);
       this.h.onToolStart(c.call_id, body.label);
       for (const cmd of body.ui as UiCommand[]) this.h.onUi(cmd);
+      for (const card of (body.evidence ?? []) as EvidenceCard[]) this.h.onEvidence(c.call_id, card);
       output = body.result;
       this.h.onToolDone(c.call_id, !(body.result && "error" in body.result), body.result?.error);
     } catch (err) {
@@ -182,6 +185,7 @@ export class VoiceSession {
 
   private async finishAnswer() {
     let unverified: string[] = [];
+    let checked: number | undefined;
     if (this.transcript.trim()) {
       try {
         const res = await fetch("/api/voice/check", {
@@ -189,11 +193,15 @@ export class VoiceSession {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text: this.transcript, results: this.results }),
         });
-        if (res.ok) unverified = (await res.json()).unverified_numbers ?? [];
+        if (res.ok) {
+          const body = await res.json();
+          unverified = body.unverified_numbers ?? [];
+          checked = body.numbers_checked;
+        }
       } catch {
         /* checking is best-effort; the answer stands */
       }
     }
-    this.h.onAnswerDone(unverified);
+    this.h.onAnswerDone(unverified, checked);
   }
 }

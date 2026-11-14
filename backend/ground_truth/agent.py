@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 
 from openai import APIError, APIStatusError, OpenAI
 
-from . import store
+from . import evidence, store
 from .change import ChangeError, EarthEngineUnavailable, detect_change
 from .config import AGENT_MODEL, CACHE, OPENAI_API_KEY
 from .fires import fires
@@ -36,7 +36,7 @@ TURN_SECONDS = 90
 MAX_OUTPUT_TOKENS = 4000
 VARIABLES = list(store.VARIABLE_IDS)
 
-INSTRUCTIONS = """You are Ground Truth, an Earth-change analyst on a 3D globe used by NASA Space Apps judges and scientists.
+INSTRUCTIONS = """You are Aisha, the AI analyst of Ground Truth: an evidence-based Earth observation platform built for Africa and open to the whole planet. People talk to you on a 3D globe or a map. If asked, say you are an AI. Your whole job is to answer from evidence: every claim must come from a tool result in this conversation, and the user is shown that evidence next to your answer.
 
 How you work:
 - Always use tools to get data. Never answer from memory. Every number you state must come from a tool result in this conversation.
@@ -44,17 +44,23 @@ How you work:
 - For "where is <variable> changing" or "show me <variable>": set_view for that variable, then trend_in_region or find_divergence if a region or contrast is asked for.
 - For "opposite trends" or "divergence": find_divergence.
 - For "right now" or "this month": now_vs_normal. For a recent period of 1 to 60 months ("the last two years", "since last summer", "temperature range this year"; "this year" means every month since January, so pass the number of months since 1 January, at least 1): recent_history, which gives daily NASA records summarised by month, the hottest day, the coldest night and comparisons with normal. For anything longer, use the trend tools. When you answer about a recent period, also call trend_at_point for temperature (and rainfall if rain is asked about) at the same place, so you can set the recent numbers against the long-term record ("the last two years ran 0.8 °C above normal, in line with a significant warming of 0.3 °C per decade since 1980"). Do not lecture about short periods: answer the question asked. Mention that a few months or years are too short to test a trend only if the user treats them as a trend, at most once per conversation, in one short clause. For fires: live_events.
-- Use locate_place before any tool that needs coordinates for a named place.
+- Use locate_place before any tool that needs coordinates for a named place. If a place name is ambiguous (for example Punjab), pick the most likely one, say in a few words which one you used, and answer; don't stop to ask.
 - Match the tool to the size of the place. For a country, region, ice sheet, desert, basin or continent (for example Greenland, northern India, the Sahel, the Amazon, the Arctic), use trend_in_region with the place's bounding box; a single point at its centre can show the opposite of the regional trend. Use trend_at_point only for a city, a site, or a point the user clicked.
 
 How you write:
 - Your readers are beginners: school students and members of the public. Write like a good science teacher talking to a curious 14-year-old. Plain words, short sentences, at most 120 words unless asked for more. Lead with the answer.
-- Use everyday names: "temperature", "plant greenness" (not NDVI), "rainfall", "water stored in the ground" (not TWS or mascons). No jargon such as p-value, Mann-Kendall, Theil-Sen, FDR, anomaly or embeddings unless the user uses it first.
+- Use everyday names: "temperature", "plant greenness" (not NDVI), "rainfall", "water stored in the land" (GRACE: groundwater, soil moisture, rivers, lakes, snow and ice together; not groundwater alone, and only about 300 km sharp). Not TWS or mascons. No jargon such as p-value, Mann-Kendall, Theil-Sen, FDR, anomaly or embeddings unless the user uses it first.
 - For a trend, say the direction, how much it changed over the whole period (total_change_over_period, with units and years), and how sure we are using chance_it_is_luck ("the chance this is just luck is about 1 in 200"). Call a change "proven" or "real" only when significant is true; otherwise say it is "not proven yet" because the year-to-year ups and downs are bigger than the change.
 - Give a sense of scale when it helps (a layer of water 836 mm deep, 1.2 °C warmer than in 1980), and one sentence on what it means for people there, without claiming a cause.
 - If the user asks for technical detail (p-values, rates per decade, methods), give it exactly.
 - Change detection (AlphaEarth embeddings, Google DeepMind) finds where the land surface changed and what it became. Trend significance comes from NASA records (GISTEMP, MODIS, GPM IMERG, GRACE). Do not call AlphaEarth NASA data.
-- Never claim a cause. You may say what changed and where; explaining why needs further analysis.
+- Keep three kinds of statement apart and label each one, starting the sentence or bullet with the label in bold:
+  **Proven**: a long-term trend whose tool result has significant true (95 % confidence, corrected for testing the whole map). Give the rate range when present (ci_per_decade / slope_ci_per_decade), e.g. "likely between 0.17 and 0.38 °C per decade".
+  **Not proven yet**: a long-term trend with significant false. Say the ups and downs are bigger than the change.
+  **Observed**: recent weather, land change from satellites, or fires: really recorded, but not a tested long-term trend.
+  **Possible explanation**: at most one short line on why it might be happening. Say it is not tested by Ground Truth. Never present a cause as established.
+- Name the record and its years the first time you use it (e.g. "NASA rainfall records, 2001–2024").
+- End with one short line starting "**Uncertain:**" when something important is unknown (coarse grid, short record, GRACE's 300 km footprint, cloud).
 - If a tool returns an error, explain it simply and suggest what to try instead.
 - You are the whole product. Never tell the user to find another dataset, tool, service or API key. If a question is outside what the tools can measure, say so in one sentence and answer the closest question the tools can."""
 
@@ -132,6 +138,7 @@ class TurnState:
     ui: list[dict] = field(default_factory=list)
     change_calls: int = 0
     numbers: set[float] = field(default_factory=set)
+    evidence: list[dict] = field(default_factory=list)
 
 
 def _box_around(lat: float, lon: float, km: float = 22.0) -> tuple[float, float, float, float]:
@@ -164,6 +171,7 @@ def _run_tool(name: str, args: dict, st: TurnState) -> dict:
             st.change_calls += 1
             r = detect_change(_box_around(args["lat"], args["lon"]), args["year_a"], args["year_b"])
             st.ui.append({"action": "change", "change": r})
+            st.evidence.append(evidence.change(r, {"lat": args["lat"], "lon": args["lon"]}))
             return {
                 "years": [r["year_a"], r["year_b"]], "share_of_area_strongly_changed": round(r["share_strong_change"], 4),
                 "hotspots": [{k: h[k] for k in ("id", "lat", "lon", "area_km2", "score", "transition")}
@@ -174,11 +182,13 @@ def _run_tool(name: str, args: dict, st: TurnState) -> dict:
         if name == "trend_at_point":
             r = store.point(args["variable"], args["lat"], args["lon"])
             st.ui.append({"action": "point", "variable": args["variable"], "lat": args["lat"], "lon": args["lon"]})
+            st.evidence.append(evidence.trend(r, "point", {"lat": args["lat"], "lon": args["lon"]}))
             return _with_plain(_trim_series(r))
 
         if name == "trend_in_region":
             r = store.region(args["variable"], tuple(args["bbox"]))
             st.ui.append({"action": "region", "variable": args["variable"], "bbox": r["bbox"]})
+            st.evidence.append(evidence.trend(r, "region", {"bbox": r["bbox"]}))
             return _with_plain(_trim_series(r))
 
         if name == "find_divergence":
@@ -192,10 +202,12 @@ def _run_tool(name: str, args: dict, st: TurnState) -> dict:
 
         if name == "now_vs_normal":
             r = now_vs_normal(args["lat"], args["lon"])
+            st.evidence.append(evidence.now(r, {"lat": args["lat"], "lon": args["lon"]}))
             return {k: r[k] for k in ("window", "normal_period", "temperature", "rainfall", "summary") if k in r}
 
         if name == "recent_history":
             r = recent_history(args["lat"], args["lon"], args["months"])
+            st.evidence.append(evidence.history(r, {"lat": args["lat"], "lon": args["lon"]}))
             st.ui.append({"action": "point", "variable": "temperature", "lat": args["lat"], "lon": args["lon"]})
             months = r["months"]
             if len(months) > 24:  # keep the model's context small: quarterly summary beyond two years
@@ -205,6 +217,7 @@ def _run_tool(name: str, args: dict, st: TurnState) -> dict:
 
         if name == "live_events":
             r = fires(tuple(args["bbox"]), limit=5)
+            st.evidence.append(evidence.fires(r, list(args["bbox"])))
             st.ui.append({"action": "fires", "bbox": list(args["bbox"])})
             return {"count": r["count"], "strongest": r["fires"], "source": r["source"], "note": r["note"]}
 
@@ -227,6 +240,10 @@ def _sig3(x: float) -> float:
 def _with_plain(r: dict) -> dict:
     """Add the same everyday-language figures the case file shows: total change over the record and
     the chance the pattern is luck ("about 1 in 200"), so the analyst can explain without jargon."""
+    if r.get("variable") == "water":
+        # GRACE sees mass changes over roughly 300 km, even though the map grid is finer.
+        r["true_resolution_km"] = 300
+        r["what_it_measures"] = "all water stored in the land: groundwater, soil moisture, rivers, lakes, snow and ice"
     p = r.get("q") if r.get("q") is not None else r.get("p")
     slope = r.get("slope_per_decade")
     if slope is not None and r.get("period"):
@@ -293,6 +310,20 @@ def unverified_numbers(text: str, known: set[float]) -> list[str]:
         if not (direct or ratio):
             flagged.append(tok)
     return flagged
+
+
+def count_checked_numbers(text: str, flagged: list[str]) -> int:
+    """How many figures in the answer were matched to tool results (years and small counts are not figures)."""
+    n = 0
+    for tok in NUMBER_IN_TEXT.findall(text):
+        try:
+            v = float(tok.replace("−", "-").replace(",", ""))
+        except ValueError:
+            continue
+        if 1900 <= abs(v) <= 2100 or (abs(v) <= 10 and v == int(v)):
+            continue
+        n += 1
+    return max(0, n - len(flagged))
 
 
 @dataclass
@@ -412,9 +443,12 @@ def run_turn(session_id: str, text: str, client_factory: Callable[[], OpenAI] | 
                     yield {"type": "status", "id": fc.call_id, "text": label}
                     t_tool = time.perf_counter()
                     st.ui.clear()
+                    st.evidence.clear()
                     result = _run_tool(fc.name, args, st)
                     for cmd in st.ui:
                         yield {"type": "ui", **cmd}
+                    for card in st.evidence:
+                        yield {"type": "evidence", "id": fc.call_id, "card": card}
                     tool_log.append({"name": fc.name, "args": args, "ms": round((time.perf_counter() - t_tool) * 1000),
                                      "error": result.get("error")})
                     tool_event = {"type": "tool", "id": fc.call_id, "name": fc.name, "ok": "error" not in result,
@@ -432,6 +466,7 @@ def run_turn(session_id: str, text: str, client_factory: Callable[[], OpenAI] | 
         if flagged:
             log.warning("turn %s: numbers not found in tool results: %s", turn_id, flagged)
         yield {"type": "done", "turn": turn_id, "unverified_numbers": flagged, "tool_calls": len(tool_log),
+               "numbers_checked": count_checked_numbers(answer, flagged),
                "seconds": round(time.perf_counter() - t0, 1), "usage": usage, "model": model}
         _trace({"turn": turn_id, "session": session_id, "question": text, "answer": answer, "tools": tool_log,
                 "unverified_numbers": flagged, "usage": usage, "model": model,

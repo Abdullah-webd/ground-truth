@@ -6,6 +6,7 @@ import { formatRate, shortPlace } from "../lib/format";
 import type { BBox } from "../lib/types";
 import { useVariables } from "../lib/useVariables";
 import { PLAIN } from "../lib/plain";
+import { useLayout } from "../lib/layout";
 import { useApp } from "../state/store";
 import { AskPanel } from "./AskPanel";
 import { ErrorNote } from "./CaseFile";
@@ -28,6 +29,7 @@ const listItem = {
 
 /** Ask, go to a place, what the colours mean, change scans, opposite trends: the explore tools. */
 export function InvestigateContent() {
+  const layout = useLayout();
   const { variable, selection, select, announce, change, setChange, changeLoading, setChangeLoading, divergence, setDivergence } =
     useApp();
   const meta = useVariables().data?.find((v) => v.id === variable);
@@ -112,6 +114,18 @@ export function InvestigateContent() {
   return (
     <>
       <AskPanel />
+
+      <details open={layout !== "phone"} className="group/tools flex flex-col gap-4 border-t border-line pt-3 [&[open]>summary]:mb-1">
+        <summary className="btn btn-quiet flex h-10 cursor-pointer list-none items-center justify-between rounded-lg px-2 text-sm font-semibold text-ink">
+          More tools
+          <span className="flex items-center gap-1.5 text-xs font-normal text-muted">
+            places, colours, changes, opposite trends
+            <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden className="transition-transform duration-200 group-open/tools:rotate-90">
+              <path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
+          </span>
+        </summary>
+        <div className="flex flex-col gap-4">
 
       <form onSubmit={onSearch} className="flex flex-col gap-2 border-t border-line pt-3">
         <label htmlFor="place-search" className="text-sm font-semibold text-ink">
@@ -235,6 +249,8 @@ export function InvestigateContent() {
           </ul>
         )}
       </section>
+        </div>
+      </details>
     </>
   );
 }

@@ -12,7 +12,7 @@ from PIL import Image
 
 from .config import DERIVED
 from .grids import GRID_HALF, GRID_TWO, Grid
-from .stats import fdr_bh, mann_kendall, verdict
+from .stats import fdr_bh, mann_kendall, sen_slope_ci, verdict
 
 VARIABLE_IDS = ("temperature", "vegetation", "rainfall", "water")
 GRIDS = {"0.5deg": GRID_HALF, "2deg": GRID_TWO}
@@ -72,6 +72,12 @@ def _finite(x: float) -> float | None:
     return float(x) if np.isfinite(x) else None
 
 
+def _ci_decade(values, years) -> list[float] | None:
+    """95 % range of the rate of change, per decade."""
+    ci = sen_slope_ci(values, years)
+    return None if ci is None or not all(np.isfinite(ci)) else [round(ci[0] * 10, 6), round(ci[1] * 10, 6)]
+
+
 def _validate_point(lat: float, lon: float) -> None:
     if not (-90 <= lat <= 90 and -180 <= lon <= 180):
         raise OutOfRange(f"coordinates out of range: lat {lat}, lon {lon}")
@@ -100,6 +106,7 @@ def point(var_id: str, lat: float, lon: float) -> dict:
         "source": m["source"], "method": m["method"],
         "trend_line": None,
     }
+    result["slope_ci_per_decade"] = _ci_decade(values, s.years) if tested else None
     intercept = tr["intercept"][r, c]
     if tested and np.isfinite(intercept):
         y0, y1 = s.period
@@ -150,6 +157,7 @@ def region(var_id: str, bbox: tuple[float, float, float, float]) -> dict:
         "variable": var_id, "label": m["label"], "units": m["units"], "bbox": [west, south, east, north],
         "years": s.years.tolist(), "values": [_finite(v) for v in mean], "period": list(s.period),
         "slope_per_decade": _finite(slope), "p": _finite(p), "significant": significant,
+        "slope_ci_per_decade": _ci_decade(mean, s.years),
         "verdict": verdict(float(slope), m["units"], float(p), significant, s.period,
                            f"{m['label']} (regional average)"),
         "cells_tested": int(tested.sum()),

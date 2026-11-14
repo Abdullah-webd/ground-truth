@@ -46,7 +46,7 @@ function Tip({ title, body, children, align = "center" }: { title: string; body:
 }
 
 export function TopBar() {
-  const { variable, setVariable, base, setBase, buildings, setBuildings, showFires, toggleFires, setChecksOpen, showLabels, setShowLabels } = useApp();
+  const { variable, setVariable, base, setBase, buildings, setBuildings, showFires, toggleFires, showLabels, setShowLabels } = useApp();
   const photorealistic = useQuery({ queryKey: ["config"], queryFn: api.config, staleTime: Infinity }).data?.photorealistic ?? false;
   const variables = useVariables().data ?? [];
 
@@ -165,8 +165,8 @@ export function TopBar() {
             Fires now
           </button>
         </Tip>
-        <Tip title="How do we know?" body="How we test every trend, the checks against published science, and how we keep the AI honest." align="right">
-          <button type="button" onClick={() => setChecksOpen(true)} className="btn btn-quiet whitespace-nowrap rounded-lg border border-line px-2.5 py-1.5 text-[13px] min-[1280px]:px-3 min-[1280px]:text-sm text-ink">
+        <Tip title="How do we know?" body="Every dataset and its source, how we test each trend, the checks against published science, how Aisha stays honest, and what we can't tell." align="right">
+          <button type="button" onClick={(e) => navigate("/methods", e.nativeEvent)} className="btn btn-quiet whitespace-nowrap rounded-lg border border-line px-2.5 py-1.5 text-[13px] min-[1280px]:px-3 min-[1280px]:text-sm text-ink">
             How we know
           </button>
         </Tip>
