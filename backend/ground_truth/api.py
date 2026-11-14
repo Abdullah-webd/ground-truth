@@ -18,7 +18,7 @@ from pydantic import BaseModel, Field
 
 from . import agent, checks, ratelimit, store, voice
 from .change import ChangeError, EarthEngineUnavailable, detect_change
-from .config import CESIUM_ION_TOKEN, DERIVED, FIRMS_MAP_KEY, OPENAI_API_KEY, ROOT
+from .config import CESIUM_ION_TOKEN, DERIVED, FIRMS_MAP_KEY, OPENAI_API_KEY, ROOT, earth_engine_status
 from .fires import fires
 from .geo import PlaceNotFound, locate
 from .labels import LabelsUnavailable, nearest_place
@@ -101,6 +101,12 @@ def health():
     built = [v["id"] for v in store.available()]
     return {"status": "ok", "variables_built": built, "firms_key": bool(FIRMS_MAP_KEY),
             "agent_key": bool(OPENAI_API_KEY)}
+
+
+@app.get("/api/status/earth-engine")
+def earth_engine():
+    """Is the Earth Engine login working? (Checked at most every 10 minutes.)"""
+    return {"earth_engine": earth_engine_status()}
 
 
 @app.get("/api/config")
