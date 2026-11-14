@@ -12,7 +12,7 @@ const page = await browser.newPage({ viewport: { width: 1600, height: 900 } });
 const errors = [];
 page.on("pageerror", (e) => errors.push(String(e)));
 page.on("console", (m) => m.type() === "error" && !m.text().includes("status of 500") && errors.push(m.text()));
-await page.goto(base, { waitUntil: "load" });
+await page.goto(base + "/explore", { waitUntil: "load" });
 await page.waitForTimeout(3500);
 const t0 = Date.now();
 await page.fill("#ask", q);

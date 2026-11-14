@@ -18,6 +18,12 @@ export function Globe({ onReady, ionToken }: { onReady?: () => void; ionToken: s
     globe.set(controller);
     const off = controller.onPick(({ lat, lon, entityId }) => {
       const hotspot = controller.hotspotIdFromEntity(entityId) ?? entityId?.replace(/^hotspot:/, "");
+      const fireIndex = controller.fireIndexFromEntity(entityId);
+      const fire = fireIndex != null ? useApp.getState().fires?.[fireIndex] : undefined;
+      if (fire) {
+        useApp.getState().select({ kind: "fire", fire });
+        return;
+      }
       if (entityId?.startsWith("hotspot:") && hotspot) {
         useApp.getState().select({ kind: "hotspot", id: hotspot });
         return;

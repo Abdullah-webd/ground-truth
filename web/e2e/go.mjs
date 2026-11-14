@@ -7,7 +7,7 @@ const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--ena
 const page = await browser.newPage({ viewport: { width: 1600, height: 900 } });
 const errors = [];
 page.on("pageerror", (e) => errors.push(String(e)));
-await page.goto(base, { waitUntil: "load" });
+await page.goto(base + "/explore", { waitUntil: "load" });
 await page.waitForTimeout(5000);
 await page.screenshot({ path: `${out}/go-0-globe.png` });
 await page.fill("#place-search", place);

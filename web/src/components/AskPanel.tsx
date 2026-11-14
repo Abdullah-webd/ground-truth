@@ -31,9 +31,9 @@ const VOICE_LABEL: Record<VoiceState, string> = {
 };
 
 const SUGGESTIONS = [
-  "What changed around Lagos since 2018, and is it significant?",
-  "Is groundwater really declining in northern India?",
-  "Where is rainfall trending in opposite directions?",
+  "What changed around Lagos since 2018, and is it real?",
+  "Is groundwater really disappearing in northern India?",
+  "Is Greenland losing ice?",
   "How unusual is this month in Nairobi?",
 ];
 
@@ -232,8 +232,9 @@ export function AskPanel() {
   return (
     <section aria-label="Ask the analyst" className="flex flex-col gap-3">
       <form onSubmit={onSubmit} className="flex flex-col gap-2">
-        <label htmlFor="ask" className="text-xs font-semibold uppercase tracking-wide text-muted">
-          Ask the analyst
+        <label htmlFor="ask" className="flex flex-col">
+          <span className="atlas text-[24px] text-ink">Ask the analyst</span>
+          <span className="mt-1 text-xs text-muted">Type or talk, in your own words. It checks NASA's records, moves the globe and explains what it finds.</span>
         </label>
         <textarea
           id="ask"
@@ -246,8 +247,8 @@ export function AskPanel() {
               void send(text);
             }
           }}
-          placeholder="What changed around Lagos since 2018?"
-          className="resize-none rounded-md border border-line bg-ground px-3 py-2 text-sm text-ink placeholder:text-faint focus:border-accent focus:outline-none"
+          placeholder="Is it getting hotter where I live?"
+          className="resize-none rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-faint focus:border-ink focus:outline-none"
         />
         <div className="flex items-center justify-between gap-2">
           <button
@@ -256,13 +257,13 @@ export function AskPanel() {
             aria-pressed={voiceState !== "closed"}
             title="Talk to the analyst (OpenAI gpt-realtime-2.1). Press again to hang up."
             className={`btn flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm ${
-              voiceState === "closed" ? "btn-quiet border-line text-ink" : "border-accent text-accent"
+              voiceState === "closed" ? "btn-quiet border-line text-ink" : "border-ink bg-mark text-ink"
             }`}
           >
             <span className="relative grid h-3.5 w-3.5 place-items-center" aria-hidden>
               {voiceState !== "closed" && voiceState !== "connecting" && (
                 <motion.span
-                  className="absolute inset-0 rounded-full bg-accent/40"
+                  className="absolute inset-0 rounded-full bg-ink/25"
                   animate={{ scale: voiceState === "speaking" ? [1, 1.7, 1] : [1, 1.35, 1] }}
                   transition={{ duration: voiceState === "speaking" ? 0.9 : 1.6, repeat: Infinity, ease: "easeInOut" }}
                 />
@@ -274,15 +275,16 @@ export function AskPanel() {
             </span>
             {voiceState === "closed" ? "Talk" : VOICE_LABEL[voiceState]}
           </button>
-          <button type="submit" disabled={busy || !text.trim()} className="btn btn-accent rounded-md bg-accent px-3 py-1.5 text-sm font-semibold text-accent-ink disabled:opacity-50">
+          <button type="submit" disabled={busy || !text.trim()} className="btn btn-accent rounded-lg bg-accent px-4 py-1.5 text-sm font-semibold text-accent-ink disabled:opacity-40">
             {busy ? "Investigating…" : "Ask"}
           </button>
         </div>
-        <p className="text-[11px] text-faint">Every number in an answer is checked against the data tools.</p>
+        <p className="text-[11px] text-faint">Every number it says is checked against the NASA data, so it can't make figures up.</p>
       </form>
 
       {turns.length === 0 && (
         <ul className="flex flex-col gap-1" aria-label="Example questions">
+          <li className="px-2 text-xs font-medium text-muted">Not sure what to ask? Try one:</li>
           {SUGGESTIONS.map((s) => (
             <li key={s}>
               <button type="button" onClick={() => void send(s)} className="btn btn-quiet w-full rounded-md px-2 py-1.5 text-left text-sm text-muted">
@@ -297,7 +299,7 @@ export function AskPanel() {
         {turns.map((t) => (
           <article key={t.id} className="flex flex-col gap-2">
             <p className="self-end rounded-lg bg-panel-2 px-3 py-2 text-sm text-ink">
-              {t.voice && <span className="mr-1.5 text-[11px] uppercase tracking-wide text-muted">Said</span>}
+              {t.voice && <span className="mr-1.5 text-[11px] font-medium text-muted">You said:</span>}
               {t.question}
             </p>
             <ol className="flex flex-col gap-1">
@@ -342,7 +344,7 @@ export function AskPanel() {
 function StepIcon({ state }: { state: Step["state"] }) {
   if (state === "running")
     return (
-      <svg className="mt-0.5 h-3 w-3 shrink-0 animate-spin text-accent" viewBox="0 0 12 12" aria-label="Working">
+      <svg className="mt-0.5 h-3 w-3 shrink-0 animate-spin text-ink" viewBox="0 0 12 12" aria-label="Working">
         <circle cx="6" cy="6" r="4.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray="18 10" />
       </svg>
     );

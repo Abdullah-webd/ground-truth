@@ -4,7 +4,10 @@ import { useState, type ReactNode } from "react";
 import { api } from "../lib/api";
 import { exportCaseCard } from "../lib/exportCard";
 import { formatLatLon, formatP, formatRate, shortPlace } from "../lib/format";
-import { VARIABLE_IDS, type PointTrend } from "../lib/types";
+import { certainty, chance, explain, nowSentence, PLAIN } from "../lib/plain";
+import { VARIABLE_IDS, type Fire, type PointTrend } from "../lib/types";
+import { fireSize, hoursAgo } from "../lib/fire";
+import { Flame } from "./FirePanel";
 import { useVariables } from "../lib/useVariables";
 import { useApp } from "../state/store";
 import { Briefing } from "./Briefing";
@@ -28,7 +31,7 @@ export function CaseFile() {
           key={key}
           {...panel}
           aria-label="Case file"
-          className="scroll-thin pointer-events-auto absolute right-4 top-[68px] bottom-4 z-20 flex w-[380px] flex-col overflow-y-auto rounded-xl border border-line bg-panel"
+          className="scroll-thin panel-shadow pointer-events-auto absolute right-4 top-[72px] bottom-4 z-20 flex w-[390px] flex-col overflow-y-auto rounded-2xl border border-line bg-panel"
         >
           <button
             type="button"
@@ -41,6 +44,7 @@ export function CaseFile() {
           {selection.kind === "point" && <PointCase lat={selection.lat} lon={selection.lon} name={selection.name} />}
           {selection.kind === "hotspot" && <HotspotCase id={selection.id} />}
           {selection.kind === "pair" && <PairCase index={selection.index} />}
+          {selection.kind === "fire" && <FireCase fire={selection.fire} />}
         </motion.aside>
       )}
     </AnimatePresence>
@@ -52,7 +56,7 @@ function Header({ eyebrow, title, sub }: { eyebrow: string; title: string; sub?:
   const size = title.length > 26 ? "text-[26px]" : title.length > 16 ? "text-[32px]" : "text-[40px]";
   return (
     <div className="border-b border-line px-5 pb-4 pt-5 pr-12">
-      <p className="text-xs text-muted">{eyebrow}</p>
+      <p className="text-xs font-medium text-muted">{eyebrow}</p>
       {atlasActive ? (
         <h2 className={`atlas mt-1 ${size} text-ink opacity-0`}>{title}</h2>
       ) : (
@@ -65,23 +69,39 @@ function Header({ eyebrow, title, sub }: { eyebrow: string; title: string; sub?:
   );
 }
 
-function Stat({ k, v, accent }: { k: string; v: ReactNode; accent?: boolean }) {
+function Stat({ k, v }: { k: string; v: ReactNode }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 border-t border-line/60 py-1.5 text-sm first:border-t-0">
+    <div className="flex items-baseline justify-between gap-4 border-t border-line py-1.5 text-[13px] first:border-t-0">
       <span className="text-muted">{k}</span>
-      <span className={`tabular text-right ${accent ? "text-accent" : "text-ink"}`}>{v}</span>
+      <span className="tabular text-right text-ink">{v}</span>
     </div>
   );
 }
 
-function Verdict({ t }: { t: PointTrend }) {
-  const tone = !t.tested ? "border-line text-muted" : t.significant ? "border-accent/60 text-ink" : "border-line text-muted";
+/** How sure we are, as a meter a beginner can read: the chance the pattern is just luck. */
+function Sureness({ t }: { t: PointTrend }) {
+  const level = certainty(t.q);
   return (
-    <div className={`rounded-lg border px-4 py-3 ${tone}`}>
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-        {!t.tested ? "No test possible" : t.significant ? `Significant: ${t.meaning}` : "Not proven"}
+    <div className="rounded-lg bg-ground px-4 py-3">
+      <p className="text-xs font-semibold text-muted">How sure are we?</p>
+      <p className="mt-1 text-[15px] leading-snug text-ink">
+        The chance this pattern is just luck: <strong className="font-semibold">{chance(t.q)}</strong>.
+        {t.significant ? " That's strong enough to call it a real trend." : " That's too likely to call it a real trend."}
       </p>
-      <p className="mt-1 text-[15px] leading-snug">{t.verdict.replace(/^[^:]+: /, "")}</p>
+      <div className="mt-2.5 flex items-center gap-2 text-[11px] text-faint">
+        <span>Could be luck</span>
+        <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-line">
+          <motion.div
+            className={`absolute inset-y-0 left-0 rounded-full ${t.significant ? "bg-ink" : "bg-faint"}`}
+            initial={{ width: 0 }}
+            animate={{ width: `${Math.max(4, level * 100)}%` }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
+          />
+          <span className="absolute inset-y-0 w-px bg-ink/40" style={{ left: `${certainty(0.05) * 100}%` }} aria-hidden />
+        </div>
+        <span>Certain</span>
+      </div>
+      <p className="mt-1 text-[11px] text-faint">The tick marks the 1-in-20 line scientists use to call a trend real.</p>
     </div>
   );
 }
@@ -97,18 +117,20 @@ function PointCase({ lat, lon, name }: { lat: number; lon: number; name?: string
   });
   const title = name ? shortPlace(name) : formatLatLon(lat, lon);
   const t = trend.data;
+  const plain = PLAIN[variable];
+  const finding = t ? explain(variable, t) : null;
 
   const onExport = async () => {
-    if (!t) return;
+    if (!t || !finding) return;
     setExporting("Preparing the case card…");
     try {
       await exportCaseCard({
         title,
-        subtitle: `${t.label}, ${t.period[0]}–${t.period[1]}, ${formatLatLon(lat, lon)}`,
-        finding: t.verdict,
+        subtitle: `${plain.name}, ${t.period[0]}–${t.period[1]}, ${formatLatLon(lat, lon)}`,
+        finding: `${finding.headline}. ${finding.detail}`,
         stats: [
           ["Rate", formatRate(t.slope_per_decade, t.units)],
-          ["p (map-adjusted)", formatP(t.q)],
+          ["Chance it's luck", chance(t.q)],
           ["Test", "Mann-Kendall, autocorrelation-corrected"],
         ],
         source: `Data: ${t.source}. Method: ${t.method}.`,
@@ -122,98 +144,83 @@ function PointCase({ lat, lon, name }: { lat: number; lon: number; name?: string
 
   return (
     <>
-      <Header eyebrow={name ? "Place" : "Point"} title={title} sub={name ? formatLatLon(lat, lon) : undefined} />
-      <div className="flex flex-col gap-4 px-5 py-4">
-        <Briefing trends={others.map((q) => q.data)} now={now.data} />
+      <Header eyebrow={name ? "You're looking at" : "You picked a spot"} title={title} sub={name ? formatLatLon(lat, lon) : "Click anywhere else on the globe to compare."} />
+      <div className="flex flex-col gap-5 px-5 py-4">
+        <Briefing trends={others.map((q) => q.data)} active={variable} onPick={setVariable} />
+
+        <section aria-label="Year by year" className="flex flex-col gap-3">
+          <div>
+            <p className="text-xs font-semibold text-muted">Year by year: {plain.name.toLowerCase()}</p>
+            <p className="mt-0.5 text-sm text-muted">{plain.what}</p>
+          </div>
+          {trend.isPending && <Skeleton />}
+          {trend.isError && <ErrorNote message={(trend.error as Error).message} />}
+          {t && (
+            <>
+              <div className="rounded-lg border border-line px-3 pb-2 pt-3">
+                <SeriesChart years={t.years} values={t.values} trendLine={t.trend_line} units={t.units} significant={t.significant} label={plain.name} />
+                <p className="mt-1 text-[11px] leading-snug text-faint">
+                  Each dot is one year. The {t.significant ? "dark" : "dashed"} line shows the overall direction{t.significant ? "" : ", which isn't proven yet"}.
+                </p>
+              </div>
+              {t.tested && <Sureness t={t} />}
+            </>
+          )}
+        </section>
+
+        <section aria-label="This month" className="rounded-lg border border-line px-4 py-3">
+          <p className="text-xs font-semibold text-muted">And this month?</p>
+          {now.isPending && <p className="mt-1 text-sm text-muted">Checking the latest NASA weather records…</p>}
+          {now.isError && <p className="mt-1 text-sm text-muted">Recent weather isn't available right now: {(now.error as Error).message}</p>}
+          {now.data && (
+            <>
+              <p className="mt-1 text-[15px] leading-snug text-ink">{nowSentence(now.data)}</p>
+              <p className="mt-1.5 text-[11px] leading-snug text-faint">
+                One month is weather. The years above are climate. Source: NASA POWER, compared with 1991–2020.
+              </p>
+            </>
+          )}
+        </section>
+
         <button
           type="button"
           onClick={() =>
             useApp
               .getState()
               .ask(
-                `Investigate ${name ? shortPlace(name) : formatLatLon(lat, lon)} (${lat.toFixed(3)}, ${lon.toFixed(3)}): what changed on the ground since 2018, and which long-term NASA trends are statistically significant there? Explain what it means.`,
+                `Investigate ${name ? shortPlace(name) : formatLatLon(lat, lon)} (${lat.toFixed(3)}, ${lon.toFixed(3)}): what changed on the ground since 2018, and which long-term changes are proven by NASA records? What does it mean for people living there?`,
               )
           }
-          className="btn btn-quiet self-start rounded-md border border-accent/60 px-3 py-1.5 text-sm text-accent"
+          className="btn btn-accent rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-ink"
         >
-          Investigate with the analyst
+          Ask the analyst to explain this place
         </button>
-        <p className="-mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Detail: {t?.label ?? "selected variable"}</p>
-        {trend.isPending && <Skeleton />}
-        {trend.isError && <ErrorNote message={(trend.error as Error).message} />}
-        {t && (
-          <>
-            <Verdict t={t} />
-            <div>
-              <p className="mb-1 text-xs text-muted">
-                {t.label} each year ({t.units}){t.trend_line ? ", with the Theil-Sen trend line" : ""}
-              </p>
-              <SeriesChart years={t.years} values={t.values} trendLine={t.trend_line} units={t.units} significant={t.significant} label={t.label} />
-            </div>
-            <div>
-              <Stat k="Rate of change" v={formatRate(t.slope_per_decade, t.units)} accent={t.significant} />
-              <Stat k="p-value (single test)" v={formatP(t.p)} />
-              <Stat k="p-value (map-adjusted)" v={formatP(t.q)} />
-              <Stat k="Period" v={`${t.period[0]}–${t.period[1]}`} />
-              <Stat k="Grid cell" v={`${t.cell.size_deg}° at ${formatLatLon(t.cell.lat, t.cell.lon)}`} />
-            </div>
-          </>
-        )}
-
-        <section aria-label="Now versus normal" className="rounded-lg bg-ground/60 px-4 py-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Last 30 days vs normal</p>
-          {now.isPending && <p className="mt-1 text-sm text-muted">Checking NASA POWER…</p>}
-          {now.isError && <p className="mt-1 text-sm text-muted">Recent data unavailable: {(now.error as Error).message}</p>}
-          {now.data && (
-            <>
-              <p className="mt-1 text-sm leading-snug">{now.data.summary}</p>
-              <p className="mt-1 text-[11px] text-faint">Weather this month, compared with 30 years of normal. The long-term trend is above.</p>
-            </>
-          )}
-        </section>
-
-        <section aria-label="All signals here">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">All four signals here</p>
-          <ul className="flex flex-col">
-            {others.map((q, i) => {
-              const d = q.data;
-              const id = VARIABLE_IDS[i];
-              const active = id === variable;
-              return (
-                <li key={id}>
-                  <button
-                    type="button"
-                    onClick={() => setVariable(id)}
-                    className={`btn btn-quiet flex w-full items-baseline justify-between gap-3 rounded-md px-2 py-1.5 text-left text-sm ${active ? "bg-panel-2" : ""}`}
-                  >
-                    <span className={active ? "text-ink" : "text-muted"}>{d?.label ?? id}</span>
-                    <span className="tabular text-right">
-                      {!d ? (
-                        <span className="text-faint">…</span>
-                      ) : !d.tested ? (
-                        <span className="text-faint">no data</span>
-                      ) : (
-                        <span className={d.significant ? "text-ink" : "text-faint"}>
-                          {formatRate(d.slope_per_decade, d.units)}
-                          {d.significant ? "" : ", not proven"}
-                        </span>
-                      )}
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
 
         {t && meta && (
-          <p className="text-[11px] leading-relaxed text-faint">
-            {meta.source}. {meta.method}.
-          </p>
+          <details className="group rounded-lg border border-line px-4 py-2.5 text-sm">
+            <summary className="cursor-pointer list-none text-xs font-semibold text-muted marker:hidden">
+              <span className="inline-flex items-center gap-1.5">
+                <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden className="transition-transform duration-200 group-open:rotate-90">
+                  <path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" strokeWidth="1.5" />
+                </svg>
+                For scientists: the exact numbers
+              </span>
+            </summary>
+            <div className="mt-2">
+              <Stat k="Rate of change" v={formatRate(t.slope_per_decade, t.units)} />
+              <Stat k="p-value (single test)" v={formatP(t.p)} />
+              <Stat k="p-value (adjusted for testing the whole map)" v={formatP(t.q)} />
+              <Stat k="Years tested" v={`${t.period[0]}–${t.period[1]}`} />
+              <Stat k="Grid square" v={`${t.cell.size_deg}° (about ${Math.round(t.cell.size_deg * 111)} km) at ${formatLatLon(t.cell.lat, t.cell.lon)}`} />
+              <p className="mt-2 text-[11px] leading-relaxed text-faint">
+                {meta.source}. {meta.method}.
+              </p>
+            </div>
+          </details>
         )}
         {t && (
-          <button type="button" onClick={onExport} className="btn btn-quiet rounded-md border border-line px-3 py-2 text-sm text-ink">
-            {exporting ?? "Save this as a case card (PNG)"}
+          <button type="button" onClick={onExport} className="btn btn-quiet rounded-lg border border-line px-3 py-2 text-sm text-ink">
+            {exporting ?? "Save this finding as an image"}
           </button>
         )}
       </div>
@@ -231,40 +238,65 @@ function HotspotCase({ id }: { id: string }) {
       enabled: !!h,
     })),
   });
-  if (!change || !h) return <div className="p-5 text-sm text-muted">This hotspot is no longer on the map.</div>;
+  if (!change || !h) return <div className="p-5 text-sm text-muted">This spot is no longer on the map.</div>;
+  const changedType = h.from !== h.to && h.transition !== "no class change";
+  const football = Math.round((h.area_km2 * 1e6) / 7140);
   return (
     <>
-      <Header eyebrow={`Change hotspot, ${change.year_a} → ${change.year_b}`} title={h.transition === "no class change" ? "Changed surface" : h.transition} sub={formatLatLon(h.lat, h.lon)} />
+      <Header
+        eyebrow={`Changed between ${change.year_a} and ${change.year_b}`}
+        title={changedType ? `${h.from} → ${h.to}` : "The surface changed"}
+        sub={formatLatLon(h.lat, h.lon)}
+      />
       <div className="flex flex-col gap-4 px-5 py-4">
-        <div className="rounded-lg border border-accent/60 px-4 py-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted">What the satellites saw</p>
-          <p className="mt-1 text-[15px] leading-snug">{h.summary}.</p>
+        <p className="text-[17px] font-medium leading-snug text-ink">
+          {changedType ? (
+            <>
+              In {change.year_a} this was <span className="mark">{h.from.toLowerCase()}</span>. By {change.year_b} it had become{" "}
+              <span className="mark">{h.to.toLowerCase()}</span>.
+            </>
+          ) : (
+            <>Satellites saw this patch change a lot, but it's still the same kind of land ({h.to.toLowerCase()}). Think new crops, cleared plots or construction.</>
+          )}
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-lg bg-ground px-3 py-2.5">
+            <p className="text-[11px] text-muted">Size</p>
+            <p className="tabular text-lg font-semibold">{h.area_km2.toFixed(2)} km²</p>
+            <p className="text-[11px] text-faint">about {football.toLocaleString()} football pitches</p>
+          </div>
+          <div className="rounded-lg bg-ground px-3 py-2.5">
+            <p className="text-[11px] text-muted">How much it changed</p>
+            <p className="tabular text-lg font-semibold">{Math.min(100, Math.round((h.score / 1) * 100))}%</p>
+            <p className="text-[11px] text-faint">we flag anything over {Math.round(change.threshold * 100)}%</p>
+          </div>
         </div>
-        <div>
-          <Stat k="Area" v={`${h.area_km2.toFixed(2)} km²`} />
-          <Stat k="Change score" v={`${h.score.toFixed(2)} (threshold ${change.threshold})`} accent />
-          <Stat k={`Land cover ${change.year_a}`} v={h.from} />
-          <Stat k={`Land cover ${change.year_b}`} v={h.to} />
-        </div>
+        <p className="text-sm leading-snug text-muted">
+          Google DeepMind's AlphaEarth compares what every 10 m patch looked like in each year. The land type comes from Dynamic World. Zoom in to see the ground itself.
+        </p>
         <section>
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">Long-term NASA trends at this spot</p>
-          <ul>
-            {others.map((q, i) => (
-              <li key={VARIABLE_IDS[i]} className="flex justify-between gap-3 py-1 text-sm">
-                <span className="text-muted">{q.data?.label ?? VARIABLE_IDS[i]}</span>
-                <span className="tabular">
-                  {!q.data ? "…" : !q.data.tested ? <span className="text-faint">no data</span> : (
-                    <span className={q.data.significant ? "text-ink" : "text-faint"}>
-                      {formatRate(q.data.slope_per_decade, q.data.units)}
-                      {q.data.significant ? "" : ", not proven"}
-                    </span>
-                  )}
-                </span>
-              </li>
-            ))}
+          <p className="mb-1.5 text-xs font-semibold text-muted">What NASA's long records say about this spot</p>
+          <ul className="flex flex-col gap-1">
+            {others.map((q, i) => {
+              const vid = VARIABLE_IDS[i];
+              const f = q.data ? explain(vid, q.data) : null;
+              return (
+                <li key={vid} className="flex items-baseline justify-between gap-3 border-t border-line py-1.5 text-sm first:border-t-0">
+                  <span className="text-muted">{PLAIN[vid].name}</span>
+                  <span className="text-right">
+                    {!f ? "…" : f.status === "proven" ? <span className="mark font-medium">{f.headline}</span> : <span className="text-faint">{f.status === "nodata" ? "no data" : "no proven change"}</span>}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         </section>
-        <p className="text-[11px] leading-relaxed text-faint">{change.method}.</p>
+        <details className="group rounded-lg border border-line px-4 py-2.5 text-sm">
+          <summary className="cursor-pointer list-none text-xs font-semibold text-muted">For scientists: method</summary>
+          <p className="mt-2 text-[11px] leading-relaxed text-faint">
+            Change score {h.score.toFixed(2)} (cosine distance between annual AlphaEarth embeddings; threshold {change.threshold}). {change.method}.
+          </p>
+        </details>
       </div>
     </>
   );
@@ -277,31 +309,74 @@ function PairCase({ index }: { index: number }) {
   const downColor = meta?.palette[0] ?? "#4393c3";
   const pair = divergence?.pairs[index];
   if (!divergence || !pair) return <div className="p-5 text-sm text-muted">This pair is no longer on the map.</div>;
+  const plain = PLAIN[divergence.variable];
   const row = (title: string, c: typeof pair.increasing, color: string) => (
-    <div className="rounded-lg bg-ground/60 px-4 py-3">
-      <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted">
-        <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: color }} aria-hidden />
+    <div className="rounded-lg bg-ground px-4 py-3">
+      <p className="flex items-center gap-2 text-sm font-semibold text-ink">
+        <span className="inline-block h-3 w-3 rounded-sm" style={{ background: color }} aria-hidden />
         {title}
       </p>
-      <p className="tabular mt-1 text-lg">{formatRate(c.slope_per_decade, divergence.units.replace(" per decade", ""))}</p>
-      <p className="tabular text-xs text-muted">
-        {(c.area_km2 / 1e6).toFixed(2)} million km² centred near {formatLatLon(c.lat, c.lon)}
+      <p className="tabular mt-1 text-sm text-muted">
+        {formatRate(c.slope_per_decade, divergence.units.replace(" per decade", ""))} across {(c.area_km2 / 1e6).toFixed(2)} million km²
       </p>
     </div>
   );
   return (
     <>
-      <Header eyebrow={`${divergence.label}, ${divergence.period[0]}–${divergence.period[1]}`} title="Opposite trends" />
+      <Header eyebrow={`${plain.name}, ${divergence.period[0]}–${divergence.period[1]}`} title="Opposite trends" />
       <div className="flex flex-col gap-3 px-5 py-4">
-        <p className="text-[15px] leading-snug">
-          The same variable is moving in opposite directions in two regions {pair.distance_km.toLocaleString()} km apart. Both trends
-          are statistically significant after correcting for testing the whole map.
+        <p className="text-[17px] font-medium leading-snug">
+          Two regions {pair.distance_km.toLocaleString()} km apart are moving in <span className="mark">opposite directions</span>: one is{" "}
+          {plain.up}, the other {plain.down}. Both are proven, not luck.
         </p>
-        {row(`Significantly ${divergence.increase_means}`, pair.increasing, upColor)}
-        {row(`Significantly ${divergence.decrease_means}`, pair.decreasing, downColor)}
-        <p className="text-[11px] leading-relaxed text-faint">
-          We show where the trends disagree. Explaining why needs physical analysis; we don't claim a cause.
+        {row(`This region is ${plain.up}`, pair.increasing, upColor)}
+        {row(`This region is ${plain.down}`, pair.decreasing, downColor)}
+        <p className="text-[12px] leading-relaxed text-muted">
+          The same weather system can push one place wetter and another drier. We show where it happens; working out why takes more science, so we
+          don't guess a cause.
         </p>
+      </div>
+    </>
+  );
+}
+
+function FireCase({ fire }: { fire: Fire }) {
+  const size = fireSize(fire.frp);
+  const conf = fire.confidence === "h" ? "high" : fire.confidence === "l" ? "low" : "normal";
+  return (
+    <>
+      <Header eyebrow="Fire seen from space" title={size.title} sub={formatLatLon(fire.lat, fire.lon)} />
+      <div className="flex flex-col gap-4 px-5 py-4">
+        <div className="flex items-start gap-3">
+          <Flame scale={1.4} />
+          <p className="text-[17px] font-medium leading-snug text-ink">
+            NASA's VIIRS satellite saw this spot burning <span className="mark">{hoursAgo(fire.time)}</span>. {size.label}.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-lg bg-ground px-3 py-2.5">
+            <p className="text-[11px] text-muted">Heat given off</p>
+            <p className="tabular text-lg font-semibold">{Math.round(fire.frp)} MW</p>
+            <p className="text-[11px] text-faint">megawatts of fire power</p>
+          </div>
+          <div className="rounded-lg bg-ground px-3 py-2.5">
+            <p className="text-[11px] text-muted">How sure NASA is</p>
+            <p className="text-lg font-semibold capitalize">{conf}</p>
+            <p className="text-[11px] text-faint">that this is a real fire</p>
+          </div>
+        </div>
+        <p className="text-sm leading-snug text-muted">
+          The red circle on the ground shows the patch the satellite saw, about 375 m across. Most hot spots are farm, bush or forest fires; a few are gas
+          flares, volcanoes or factories.
+        </p>
+        <button
+          type="button"
+          onClick={() => useApp.getState().select({ kind: "point", lat: fire.lat, lon: fire.lon })}
+          className="btn btn-quiet rounded-lg border border-line px-3 py-2 text-sm text-ink"
+        >
+          Is this area changing over the years?
+        </button>
+        <p className="text-[11px] text-faint">NASA FIRMS, VIIRS NOAA-20, detected {fire.time.replace("T", " ").replace("Z", " UTC")}.</p>
       </div>
     </>
   );
@@ -310,8 +385,7 @@ function PairCase({ index }: { index: number }) {
 function Skeleton() {
   return (
     <div className="flex flex-col gap-3" aria-busy="true" aria-label="Loading">
-      <div className="h-16 animate-pulse rounded-lg bg-panel-2" />
-      <div className="h-36 animate-pulse rounded-lg bg-panel-2" />
+      <div className="h-36 animate-pulse rounded-lg bg-ground" />
     </div>
   );
 }

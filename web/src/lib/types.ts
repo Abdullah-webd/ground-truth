@@ -204,6 +204,6 @@ export interface Checks {
     total: number;
     median_seconds: number;
     at: string;
-    cases: { question: string; passed: boolean; failed: string[] }[];
+    cases: { question: string; passed: boolean; failed: string[]; tools: string[]; answer: string }[];
   } | null;
 }

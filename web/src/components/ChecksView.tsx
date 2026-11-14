@@ -43,11 +43,11 @@ export function ChecksView() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.15 } }}
             transition={{ type: "spring", duration: 0.35, bounce: 0 }}
-            className="scroll-thin max-h-full w-full max-w-[880px] overflow-y-auto rounded-2xl border border-line bg-panel p-8"
+            className="scroll-thin panel-shadow max-h-full w-full max-w-[880px] overflow-y-auto rounded-2xl border border-line bg-panel p-8"
           >
             <div className="flex items-start justify-between gap-6">
               <div>
-                <h2 id="checks-title" className="atlas text-[48px] text-ink">How we test</h2>
+                <h2 id="checks-title" className="atlas text-[48px] text-ink">How we know</h2>
                 <p className="mt-2 max-w-[60ch] text-muted">
                   A trend is called significant only when it is very unlikely to be natural variability, after correcting for
                   year-to-year persistence and for testing thousands of map cells. Here is the evidence that the method works.
@@ -63,7 +63,7 @@ export function ChecksView() {
 
             {d && (
               <>
-                <h3 className="mt-8 text-sm font-semibold uppercase tracking-wide text-muted">Do we reproduce published science?</h3>
+                <h3 className="mt-8 text-base font-semibold text-ink">Do we reproduce published science?</h3>
                 <ul className="mt-3 flex flex-col gap-2">
                   {d.global_temperature && (
                     <CheckRow
@@ -80,7 +80,7 @@ export function ChecksView() {
 
                 {tt && (
                   <>
-                    <h3 className="mt-8 text-sm font-semibold uppercase tracking-wide text-muted">Why this test, not the usual one</h3>
+                    <h3 className="mt-8 text-base font-semibold text-ink">Why this test, not the usual one</h3>
                     <p className="mt-2 max-w-[70ch] text-sm text-muted">
                       {tt.replicates.toLocaleString()} simulated series per case. False alarms: how often a method flags a trend in
                       data that has none (should be about 5%). Power: how often it finds a trend that is really there.
@@ -98,7 +98,7 @@ export function ChecksView() {
                           {methods.map((m) => {
                             const ours = m.startsWith("Ours");
                             return (
-                              <tr key={m} className={`border-t border-line ${ours ? "text-accent" : ""}`}>
+                              <tr key={m} className={`border-t border-line ${ours ? "bg-mark-soft font-semibold text-ink" : ""}`}>
                                 <td className="py-2 pr-4">{m}</td>
                                 <td className="py-2 pr-4">{range(tt.false_alarm[m])}</td>
                                 <td className="py-2">{range(tt.power[m])}</td>
@@ -112,7 +112,7 @@ export function ChecksView() {
                 )}
                 {d.agent_eval && (
                   <>
-                    <h3 className="mt-8 text-sm font-semibold uppercase tracking-wide text-muted">Is the analyst honest?</h3>
+                    <h3 className="mt-8 text-base font-semibold text-ink">Is the analyst honest?</h3>
                     <p className="mt-2 max-w-[70ch] text-sm text-muted">
                       {d.agent_eval.passed} of {d.agent_eval.total} test questions passed every check: right tools, every number
                       traceable to the data, "significant" only when the test says so, no errors. Median answer time{" "}

@@ -1,22 +1,26 @@
 @import "tailwindcss";
 
-/* Ground Truth tokens.
-   Night-side ocean ground, cool ink, one survey-marker yellow accent for the agent, selection
-   and focus. Data layers carry their own colour-blind-safe scales. */
+/* Ground Truth tokens: the detective's notebook.
+   White paper, deep ink, and a highlighter that marks what is proven. Data layers keep their own
+   colour-blind-safe scales (red = rising, blue = falling). */
 @theme {
-  --color-ground: #0a0f16;
-  --color-panel: #111a24;
-  --color-panel-2: #172331;
-  --color-line: #233244;
-  --color-ink: #e8edf2;
-  --color-muted: #8796a8;
-  --color-faint: #5a6a7c;
-  --color-accent: #f2c14e;
-  --color-accent-ink: #1b1505;
-  --color-up: #d6604d;
-  --color-down: #4393c3;
-  --color-ok: #6fbf8a;
-  --color-bad: #e07a6a;
+  --color-ground: #f4f5f2;
+  --color-paper: #ffffff;
+  --color-panel: #ffffff;
+  --color-panel-2: #eef0ec;
+  --color-line: #e1e4e0;
+  --color-ink: #11181f;
+  --color-muted: #56616b;
+  --color-faint: #8a949c;
+  --color-accent: #11181f;
+  --color-accent-ink: #ffffff;
+  --color-mark: #ffe14d;
+  --color-mark-soft: #fff3b0;
+  --color-fire: #e5481f;
+  --color-up: #c8413a;
+  --color-down: #2f6db5;
+  --color-ok: #2e8a57;
+  --color-bad: #c23b2e;
 
   --font-sans: "Public Sans Variable", "Public Sans", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Barlow Condensed", "Arial Narrow", ui-sans-serif, sans-serif;
@@ -30,16 +34,15 @@
   --dur-press: 120ms;
   --dur-ui: 200ms;
   --dur-panel: 300ms;
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 html,
 body,
 #root {
-  height: 100%;
+  min-height: 100%;
   margin: 0;
-  overflow: hidden;
-  background: var(--color-ground);
+  background: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-sans);
   font-size: 15px;
@@ -76,7 +79,10 @@ body,
     color: var(--color-ink);
   }
   .btn-accent:hover {
-    background: #f6cf6d;
+    background: #2b3640;
+  }
+  .btn-fire:hover {
+    background: #c73a14;
   }
 }
 :focus-visible {
@@ -130,5 +136,52 @@ body,
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* The app screen is a fixed instrument; the landing page scrolls. */
+.app-screen {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* Signature: the highlighter. Proven findings are marked like evidence in a case file. */
+.mark {
+  background: linear-gradient(104deg, transparent 0.4em, var(--color-mark) 0.5em, var(--color-mark) 96%, transparent 100%) 0 62% / 100% 58% no-repeat;
+  padding: 0 0.12em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.mark-draw {
+  background-size: 0% 58%;
+  transition: background-size 700ms var(--ease-expo);
+}
+.mark-draw.is-on {
+  background-size: 100% 58%;
+}
+
+.panel-shadow {
+  box-shadow: 0 1px 2px rgba(17, 24, 31, 0.05), 0 8px 28px -12px rgba(17, 24, 31, 0.18);
+}
+
+/* Route transitions between the landing page and the globe */
+::view-transition-old(root) {
+  animation: 260ms var(--ease-in-out) both vt-out;
+}
+::view-transition-new(root) {
+  animation: 520ms var(--ease-expo) both vt-in;
+}
+@keyframes vt-out {
+  to { opacity: 0; transform: scale(0.985); }
+}
+@keyframes vt-in {
+  from { opacity: 0; clip-path: circle(12% at var(--vt-x, 50%) var(--vt-y, 50%)); }
+  to { opacity: 1; clip-path: circle(150% at var(--vt-x, 50%) var(--vt-y, 50%)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0s !important;
   }
 }

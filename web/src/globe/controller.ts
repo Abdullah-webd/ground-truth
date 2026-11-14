@@ -16,7 +16,10 @@ import {
   IonWorldImageryStyle,
   Math as CMath,
   PolylineDashMaterialProperty,
-  PointPrimitiveCollection,
+  BillboardCollection,
+  DistanceDisplayCondition,
+  NearFarScalar,
+  VerticalOrigin,
   Rectangle,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
@@ -35,7 +38,9 @@ import type { BBox, Fire, Hotspot } from "../lib/types";
 
 const GIBS = "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best";
 const gibsCredit = new Credit("Imagery: NASA GIBS / EOSDIS", false);
-const ACCENT = Color.fromCssColorString("#f2c14e");
+// On the globe the highlighter marks evidence too: change hotspots, the selected spot, divergence arcs.
+const ACCENT = Color.fromCssColorString("#ffe14d");
+const FIRE_FOOTPRINT_BELOW = 500_000; // m: show each fire's real ~375 m footprint on the ground below this height
 const WORLD = Rectangle.fromDegrees(-180, -90, 180, 90);
 const OVERLAY_ALPHA = 0.82;
 const OVERLAY_FADE_LOW = 300_000; // m: overlay nearly gone below this camera height
@@ -78,7 +83,9 @@ export class GlobeController {
   private changeLayer: ImageryLayer | null = null;
   private clusterLayers: ImageryLayer[] = [];
   private hotspots: GeoJsonDataSource | null = null;
-  private fires: PointPrimitiveCollection;
+  private fires: BillboardCollection;
+  private fireFootprints: BillboardCollection;
+  private fireGrow = { v: 1 };
   private marker: Entity | null = null;
   private arc: Entity | null = null;
   private pickHandlers = new Set<PickHandler>();
@@ -99,14 +106,17 @@ export class GlobeController {
       infoBox: false,
       selectionIndicator: false,
       contextOptions: { webgl: { preserveDrawingBuffer: true, alpha: false } },
+      orderIndependentTranslucency: false,
       ...(this.photorealistic ? { terrain: Terrain.fromWorldTerrain() } : {}),
     });
     const { scene } = this.viewer;
-    scene.backgroundColor = Color.fromCssColorString("#05080d");
+    // The platform is white paper: Earth floats on the page, no starfield.
+    scene.backgroundColor = Color.WHITE;
     if (scene.skyBox) scene.skyBox.show = false;
     if (scene.sun) scene.sun.show = false;
     if (scene.moon) scene.moon.show = false;
-    scene.globe.baseColor = Color.fromCssColorString("#0a0f16");
+    scene.globe.baseColor = Color.fromCssColorString("#dfe3e6");
+    if (scene.skyAtmosphere) scene.skyAtmosphere.brightnessShift = 0.25;
     scene.globe.showGroundAtmosphere = true;
     scene.globe.enableLighting = false;
     scene.globe.depthTestAgainstTerrain = this.photorealistic;
@@ -159,7 +169,8 @@ export class GlobeController {
     this.reference = [coast, labels];
     this.applyBase();
 
-    this.fires = scene.primitives.add(new PointPrimitiveCollection());
+    this.fireFootprints = scene.primitives.add(new BillboardCollection({ scene }));
+    this.fires = scene.primitives.add(new BillboardCollection({ scene }));
 
     const handler = new ScreenSpaceEventHandler(scene.canvas);
     handler.setInputAction((e: { position: Cartesian2 }) => this.handleClick(e.position), ScreenSpaceEventType.LEFT_CLICK);
@@ -378,6 +389,23 @@ export class GlobeController {
       }
       if (hid) entity.name = `hotspot:${hid}`;
     }
+    // Patches are often under 1 km²: invisible from a city-wide view. A numbered pin on each one
+    // (matching the list in the side panel) makes them findable; pins hide once you're close.
+    hotspots.forEach((h, i) => {
+      ds.entities.add({
+        id: `hotspot:${h.id}#pin`,
+        position: Cartesian3.fromDegrees(h.lon, h.lat),
+        properties: { id: h.id },
+        billboard: {
+          image: pinSprite(i + 1, h.id === selectedId),
+          verticalOrigin: VerticalOrigin.BOTTOM,
+          heightReference: HeightReference.CLAMP_TO_GROUND,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          scale: 0.5,
+          distanceDisplayCondition: new DistanceDisplayCondition(2500, 2.5e6),
+        },
+      });
+    });
     await this.viewer.dataSources.add(ds);
     this.hotspots = ds;
   }
@@ -415,18 +443,57 @@ export class GlobeController {
     }
   }
 
+  /**
+   * NASA FIRMS hot spots as flames: bigger and redder for more intense fires (fire radiative power),
+   * growing as you zoom in. Close to the ground each fire also shows its real footprint (one VIIRS
+   * pixel, about 375 m across). Click a flame for details.
+   */
   setFires(fires: Fire[] | null) {
     this.fires.removeAll();
+    this.fireFootprints.removeAll();
     if (!fires) return;
-    const hot = Color.fromCssColorString("#ff8c3a");
-    const warm = Color.fromCssColorString("#ffb347");
-    for (const f of fires) {
+    const flame = flameSprite();
+    const ring = footprintSprite();
+    fires.forEach((f, i) => {
+      const position = Cartesian3.fromDegrees(f.lon, f.lat);
+      const strength = f.frp >= 100 ? 1 : f.frp >= 20 ? 0.72 : 0.5;
       this.fires.add({
-        position: Cartesian3.fromDegrees(f.lon, f.lat),
-        pixelSize: f.frp > 50 ? 5 : 3,
-        color: (f.frp > 50 ? hot : warm).withAlpha(0.9),
+        id: { id: `fire:${i}` },
+        position,
+        image: flame,
+        scale: 0.42 * strength,
+        verticalOrigin: VerticalOrigin.BOTTOM,
+        heightReference: HeightReference.CLAMP_TO_GROUND,
+        scaleByDistance: new NearFarScalar(2e4, 1.6, 2.2e7, 0.42),
+        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+      });
+      this.fireFootprints.add({
+        id: { id: `fire:${i}` },
+        position,
+        image: ring,
+        width: 375,
+        height: 375,
+        sizeInMeters: true,
+        heightReference: HeightReference.CLAMP_TO_GROUND,
+        distanceDisplayCondition: new DistanceDisplayCondition(0, FIRE_FOOTPRINT_BELOW),
+      });
+    });
+    // The flames rise into view rather than popping in.
+    if (!reduceMotion()) {
+      this.fireGrow.v = 0;
+      gsap.to(this.fireGrow, {
+        v: 1,
+        duration: 0.7,
+        ease: "expo.out",
+        onUpdate: () => {
+          for (let i = 0; i < this.fires.length; i++) this.fires.get(i).color = Color.WHITE.withAlpha(this.fireGrow.v);
+        },
       });
     }
+  }
+
+  fireIndexFromEntity(entityId?: string): number | null {
+    return entityId?.startsWith("fire:") ? Number(entityId.slice(5)) : null;
   }
 
   snapshot(): string {
@@ -449,3 +516,82 @@ export const globe = {
     return current;
   },
 };
+
+let flameCache: HTMLCanvasElement | null = null;
+/** A flame glyph with a soft glow, drawn once on a canvas (no image files, no emoji). */
+function flameSprite(): HTMLCanvasElement {
+  if (flameCache) return flameCache;
+  const c = document.createElement("canvas");
+  c.width = 64;
+  c.height = 80;
+  const g = c.getContext("2d")!;
+  const glow = g.createRadialGradient(32, 58, 2, 32, 58, 30);
+  glow.addColorStop(0, "rgba(255,120,40,0.55)");
+  glow.addColorStop(1, "rgba(255,120,40,0)");
+  g.fillStyle = glow;
+  g.fillRect(0, 20, 64, 60);
+  const flame = (scale: number, color: string) => {
+    g.save();
+    g.translate(32, 74);
+    g.scale(scale, scale);
+    g.beginPath();
+    g.moveTo(0, 0);
+    g.bezierCurveTo(-20, 0, -24, -22, -12, -36);
+    g.bezierCurveTo(-8, -26, -2, -24, -2, -24);
+    g.bezierCurveTo(-6, -40, 2, -54, 6, -62);
+    g.bezierCurveTo(8, -46, 24, -38, 22, -18);
+    g.bezierCurveTo(21, -6, 12, 0, 0, 0);
+    g.closePath();
+    g.fillStyle = color;
+    g.fill();
+    g.restore();
+  };
+  flame(1, "#d93a12");
+  flame(0.68, "#ff7a1a");
+  flame(0.36, "#ffd23f");
+  g.strokeStyle = "rgba(255,255,255,0.9)";
+  flameCache = c;
+  return c;
+}
+
+let ringCache: HTMLCanvasElement | null = null;
+function footprintSprite(): HTMLCanvasElement {
+  if (ringCache) return ringCache;
+  const c = document.createElement("canvas");
+  c.width = c.height = 64;
+  const g = c.getContext("2d")!;
+  g.fillStyle = "rgba(229,72,31,0.28)";
+  g.strokeStyle = "rgba(229,72,31,0.95)";
+  g.lineWidth = 3;
+  g.beginPath();
+  g.arc(32, 32, 29, 0, Math.PI * 2);
+  g.fill();
+  g.stroke();
+  ringCache = c;
+  return c;
+}
+
+/** A numbered highlighter pin for a change hotspot. */
+function pinSprite(n: number, selected: boolean): HTMLCanvasElement {
+  const c = document.createElement("canvas");
+  c.width = 64;
+  c.height = 84;
+  const g = c.getContext("2d")!;
+  g.beginPath();
+  g.moveTo(32, 82);
+  g.bezierCurveTo(26, 66, 6, 54, 6, 32);
+  g.arc(32, 32, 26, Math.PI, 0);
+  g.bezierCurveTo(58, 54, 38, 66, 32, 82);
+  g.closePath();
+  g.fillStyle = selected ? "#11181f" : "#ffe14d";
+  g.fill();
+  g.lineWidth = 4;
+  g.strokeStyle = selected ? "#ffe14d" : "#11181f";
+  g.stroke();
+  g.fillStyle = selected ? "#ffe14d" : "#11181f";
+  g.font = "700 28px 'Public Sans Variable', system-ui, sans-serif";
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  g.fillText(String(n), 32, 33);
+  return c;
+}

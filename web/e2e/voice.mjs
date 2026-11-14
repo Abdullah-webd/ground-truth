@@ -8,7 +8,7 @@ const ctx = await browser.newContext({ viewport: { width: 1600, height: 900 }, p
 const page = await ctx.newPage();
 const errors = [];
 page.on("pageerror", (e) => errors.push(String(e)));
-await page.goto(base, { waitUntil: "load" });
+await page.goto(base + "/explore", { waitUntil: "load" });
 await page.waitForTimeout(3000);
 await page.getByRole("button", { name: "Talk" }).click();
 const t0 = Date.now();

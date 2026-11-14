@@ -2,6 +2,7 @@ import { motion } from "motion/react";
 import { useVariables } from "../lib/useVariables";
 import { useApp } from "../state/store";
 import { Legend } from "./Legend";
+import { PLAIN } from "../lib/plain";
 
 export function Timeline() {
   const { variable, mapView, setMapView, year, setYear, playing, setPlaying } = useApp();
@@ -26,7 +27,7 @@ export function Timeline() {
       data-reveal
       data-intro="bottom"
       data-section
-      className="pointer-events-auto flex max-w-full flex-wrap items-end justify-center gap-x-6 gap-y-3 rounded-xl border border-line bg-panel px-5 py-3.5"
+      className="panel-shadow pointer-events-auto flex max-w-full flex-wrap items-end justify-center gap-x-6 gap-y-3 rounded-2xl border border-line bg-panel px-5 py-3.5"
     >
       <div className="flex flex-col gap-2">
         <div role="tablist" aria-label="Map view" className="flex gap-1 rounded-lg border border-line bg-ground p-1 text-sm">
@@ -40,16 +41,16 @@ export function Timeline() {
               className={`btn relative rounded-md px-3 py-1 ${mapView === v ? "text-ink" : "btn-quiet text-muted"}`}
             >
               {mapView === v && (
-                <motion.span layoutId="view-pill" className="absolute inset-0 rounded-md bg-panel-2" transition={{ duration: 0.25 }} />
+                <motion.span layoutId="view-pill" className="absolute inset-0 rounded-md bg-paper shadow-sm" transition={{ duration: 0.25 }} />
               )}
-              <span className="relative">{v === "trend" ? "Where it's trending" : "Year by year"}</span>
+              <span className="relative">{v === "trend" ? "Proven trends" : "Play the years"}</span>
             </button>
           ))}
         </div>
         <p className="max-w-[300px] text-xs text-muted">
           {mapView === "trend"
-            ? `${meta.label}, ${y0}–${y1}. Coloured where the trend is statistically significant.`
-            : `Each year compared with the ${meta.legend.frames.baseline}.`}
+            ? `Where ${PLAIN[variable].name.toLowerCase()} has really changed since ${y0}. Grey means no clear change.`
+            : `Each year compared with the average for ${meta.legend.frames.baseline}. Press play to watch it change.`}
         </p>
       </div>
 
@@ -74,7 +75,7 @@ export function Timeline() {
           </button>
           <div className="flex flex-col">
             <span className="atlas tabular text-[34px] text-ink">{current}</span>
-            {missing && <span className="text-[11px] text-bad">No data this year (satellite gap)</span>}
+            {missing && <span className="text-[11px] text-bad">No data this year (gap between satellites)</span>}
           </div>
           <input
             id="year-scrubber"
@@ -88,7 +89,7 @@ export function Timeline() {
               setYear(Number(e.target.value));
             }}
             aria-label="Year"
-            className="w-[220px] accent-[var(--color-accent)]"
+            className="w-[220px] accent-[var(--color-ink)]"
           />
         </motion.div>
       )}

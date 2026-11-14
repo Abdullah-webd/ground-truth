@@ -1,3 +1,5 @@
+import "./cesium-base";
+import "cesium/Build/Cesium/Widgets/widgets.css";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { LayoutGroup } from "motion/react";
@@ -6,6 +8,7 @@ import { AtlasLabel } from "./components/AtlasLabel";
 import { CaseFile } from "./components/CaseFile";
 import { ChecksView } from "./components/ChecksView";
 import { InvestigatePanel } from "./components/InvestigatePanel";
+import { FirePanel } from "./components/FirePanel";
 import { Timeline } from "./components/Timeline";
 import { TopBar } from "./components/TopBar";
 import { Globe } from "./globe/Globe";
@@ -16,7 +19,7 @@ import { useVariables } from "./lib/useVariables";
 
 gsap.registerPlugin(useGSAP);
 
-export default function App() {
+export default function Explore() {
   const root = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
   const onReady = useCallback(() => setReady(true), []);
@@ -49,11 +52,11 @@ export default function App() {
   );
 
   return (
-    <div ref={root} className="relative h-full w-full overflow-hidden">
+    <div ref={root} className="app-screen bg-paper">
       {configDone && <Globe onReady={onReady} ionToken={config.data?.cesium_ion_token ?? null} />}
       <GlobeSync ready={ready} />
       {variables.isError && (
-        <div role="alert" className="absolute left-1/2 top-24 z-30 -translate-x-1/2 rounded-lg border border-bad/50 bg-panel px-4 py-3 text-sm text-bad">
+        <div role="alert" className="absolute left-1/2 top-24 z-30 -translate-x-1/2 rounded-lg border border-bad/50 bg-paper px-4 py-3 text-sm text-bad">
           Can't load the trend data: {(variables.error as Error).message}
         </div>
       )}
@@ -65,6 +68,7 @@ export default function App() {
             <Timeline />
             <AtlasLabel />
             <CaseFile />
+            <FirePanel />
             <ChecksView />
           </div>
         </LayoutGroup>

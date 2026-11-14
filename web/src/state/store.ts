@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { BBox, ChangeResult, Divergence, VariableId } from "../lib/types";
+import type { BBox, ChangeResult, Divergence, Fire, VariableId } from "../lib/types";
 
 export type MapView = "trend" | "year";
 export type BaseMap = "night" | "satellite";
@@ -8,6 +8,7 @@ export type Selection =
   | { kind: "point"; lat: number; lon: number; name?: string }
   | { kind: "hotspot"; id: string }
   | { kind: "pair"; index: number }
+  | { kind: "fire"; fire: Fire }
   | null;
 
 interface State {
@@ -19,6 +20,8 @@ interface State {
   buildings: boolean;
   pendingAsk: { text: string; key: number } | null;
   showFires: boolean;
+  fires: Fire[] | null;
+  setFires: (f: Fire[] | null) => void;
   selection: Selection;
   atlasLabel: { text: string; key: number } | null;
   change: ChangeResult | null;
@@ -51,6 +54,8 @@ export const useApp = create<State>((set) => ({
   buildings: true,
   pendingAsk: null,
   showFires: false,
+  fires: null,
+  setFires: (fires) => set({ fires }),
   selection: null,
   atlasLabel: null,
   change: null,

@@ -8,7 +8,7 @@ const page = await browser.newPage({ viewport: { width: 1600, height: 900 } });
 const errors = [];
 page.on("pageerror", (e) => errors.push(String(e)));
 page.on("console", (m) => (m.type() === "error" || m.text().includes("3D tiles")) && errors.push(m.text().slice(0, 200)));
-await page.goto(base, { waitUntil: "load" });
+await page.goto(base + "/explore", { waitUntil: "load" });
 await page.waitForTimeout(5000);
 await page.screenshot({ path: `../.verify/walkthrough/${name}-0-globe.png` });
 await page.fill("#place-search", place);

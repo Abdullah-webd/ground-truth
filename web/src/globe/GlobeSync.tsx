@@ -86,7 +86,9 @@ export function GlobeSync({ ready }: { ready: boolean }) {
 
   const fires = useQuery({ queryKey: ["fires"], queryFn: () => api.fires(), enabled: showFires, refetchInterval: 600_000 });
   useEffect(() => {
-    if (ready) globe.get()?.setFires(showFires ? (fires.data?.fires ?? null) : null);
+    const list = showFires ? (fires.data?.fires ?? null) : null;
+    useApp.getState().setFires(list);
+    if (ready) globe.get()?.setFires(list);
   }, [ready, showFires, fires.data]);
 
   return null;

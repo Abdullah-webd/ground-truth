@@ -13,7 +13,7 @@ interface Props {
 
 const W = 340;
 const H = 150;
-const PAD = { l: 40, r: 18, t: 12, b: 24 };
+const PAD = { l: 40, r: 18, t: 16, b: 24 };
 
 function niceTicks(min: number, max: number, count = 4) {
   const span = max - min || 1;
@@ -85,19 +85,32 @@ export function SeriesChart({ years, values, trendLine, units, significant, labe
           </text>
         </g>
       ))}
+      <text x={4} y={PAD.t - 2} fontSize="9.5" fill="var(--color-faint)">{units}</text>
       {geo.xTicks.map((t) => (
         <text key={t} x={geo.x(t)} y={H - 6} textAnchor="middle" className="tabular" fontSize="10" fill="var(--color-muted)">
           {t}
         </text>
       ))}
       {geo.segments.map((d, i) => (
-        <path key={i} className="series" d={d} fill="none" stroke="var(--color-ink)" strokeWidth="1.6" strokeLinejoin="round" />
+        <path key={i} className="series" d={d} fill="none" stroke="var(--color-faint)" strokeWidth="1.4" strokeLinejoin="round" />
       ))}
       {years.map((yr, i) => {
         const v = values[i];
         if (v == null || !Number.isFinite(v)) return null;
-        return <circle key={yr} cx={geo.x(yr)} cy={geo.y(v)} r="1.8" fill="var(--color-ink)" />;
+        return <circle key={yr} cx={geo.x(yr)} cy={geo.y(v)} r="2.2" fill="var(--color-muted)" />;
       })}
+      {trendLine && significant && (
+        <line
+          className="trend"
+          x1={geo.x(trendLine[0][0])}
+          y1={geo.y(trendLine[0][1])}
+          x2={geo.x(trendLine[1][0])}
+          y2={geo.y(trendLine[1][1])}
+          stroke="var(--color-mark)"
+          strokeWidth="8"
+          strokeLinecap="round"
+        />
+      )}
       {trendLine && (
         <line
           className="trend"
@@ -105,8 +118,9 @@ export function SeriesChart({ years, values, trendLine, units, significant, labe
           y1={geo.y(trendLine[0][1])}
           x2={geo.x(trendLine[1][0])}
           y2={geo.y(trendLine[1][1])}
-          stroke={significant ? "var(--color-accent)" : "var(--color-faint)"}
+          stroke={significant ? "var(--color-ink)" : "var(--color-faint)"}
           strokeWidth="2"
+          strokeLinecap="round"
           strokeDasharray={significant ? undefined : "4 4"}
         />
       )}
