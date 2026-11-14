@@ -167,7 +167,7 @@ function PointCase({ lat, lon, name }: { lat: number; lon: number; name?: string
           {now.data && (
             <>
               <p className="mt-1 text-sm leading-snug">{now.data.summary}</p>
-              <p className="mt-1 text-[11px] text-faint">This is a recent anomaly, not a trend. Trends need years.</p>
+              <p className="mt-1 text-[11px] text-faint">Weather this month, compared with 30 years of normal. The long-term trend is above.</p>
             </>
           )}
         </section>

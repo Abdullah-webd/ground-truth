@@ -36,7 +36,14 @@ CASES = [
      "says": "45\\.6|10\\.7"},
     {"q": "Was this year hotter than normal in Lagos?", "tools_any": ["recent_history", "now_vs_normal"],
      "never": "API key|another dataset|different dataset|other tool"},
+    {"q": "How hot has Punjab been over the last two years compared with normal?", "tools": ["recent_history", "trend_at_point"],
+     "no_lecture": True},
+    {"q": "How unusual is this month in Phoenix?", "tools_any": ["now_vs_normal", "recent_history"], "no_lecture": True},
 ]
+
+# Repeating "this is not a trend" in every recent-weather answer is a lecture, not an answer.
+LECTURE = re.compile(r"not a (long-term )?trend|anomaly, not|too short|trends need years|brief (trend|period)|short-term (only|blip)",
+                     re.IGNORECASE)
 
 SIGNIFICANT_CLAIM = re.compile(r"(?<!not )(?<!isn't )statistically significant", re.IGNORECASE)
 
@@ -66,6 +73,8 @@ def run_case(case: dict) -> dict:
                                     for t in tools)
     if "never" in case:
         checks["no_referral"] = not re.search(case["never"], answer, re.IGNORECASE)
+    if case.get("no_lecture"):
+        checks["no_lecture"] = len(LECTURE.findall(answer)) == 0
     if "says" in case:
         checks["right_conclusion"] = bool(re.search(case["says"], answer, re.IGNORECASE))
     checks["numbers_from_tools"] = bool(done) and not done["unverified_numbers"]

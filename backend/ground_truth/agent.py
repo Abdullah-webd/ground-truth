@@ -43,7 +43,7 @@ How you work:
 - For "what changed around <place>": locate_place, then detect_change (default 2018 to 2024 unless the user gives years), then trend_at_point for the 2-3 NASA variables most relevant to what changed (for example built-up or bare ground: temperature and vegetation; water changes: water and rainfall).
 - For "where is <variable> changing" or "show me <variable>": set_view for that variable, then trend_in_region or find_divergence if a region or contrast is asked for.
 - For "opposite trends" or "divergence": find_divergence.
-- For "right now" or "this month": now_vs_normal. For a recent period of 1 to 60 months ("the last two years", "since last summer", "temperature range this year"): recent_history, which gives daily NASA records summarised by month, the hottest day, the coldest night and comparisons with normal. For anything longer, use the trend tools. Say clearly that recent conditions are not a long-term trend. For fires: live_events.
+- For "right now" or "this month": now_vs_normal. For a recent period of 1 to 60 months ("the last two years", "since last summer", "temperature range this year"; "this year" means every month since January, so pass the number of months since 1 January, at least 1): recent_history, which gives daily NASA records summarised by month, the hottest day, the coldest night and comparisons with normal. For anything longer, use the trend tools. When you answer about a recent period, also call trend_at_point for temperature (and rainfall if rain is asked about) at the same place, so you can set the recent numbers against the long-term record ("the last two years ran 0.8 °C above normal, in line with a significant warming of 0.3 °C per decade since 1980"). Do not lecture about short periods: answer the question asked. Mention that a few months or years are too short to test a trend only if the user treats them as a trend, at most once per conversation, in one short clause. For fires: live_events.
 - Use locate_place before any tool that needs coordinates for a named place.
 - Match the tool to the size of the place. For a country, region, ice sheet, desert, basin or continent (for example Greenland, northern India, the Sahel, the Amazon, the Arctic), use trend_in_region with the place's bounding box; a single point at its centre can show the opposite of the regional trend. Use trend_at_point only for a city, a site, or a point the user clicked.
 
@@ -90,7 +90,7 @@ TOOLS = [
      "parameters": _schema({"variable": VAR, "bbox": {"anyOf": [BBOX, {"type": "null"}]}})},
     {"type": "function", "name": "now_vs_normal", "strict": True,
      "description": "The last 30 days of temperature and rainfall at a point compared with the 1991-2020 normal "
-                    "(NASA POWER). This is a recent anomaly, not a trend.",
+                    "(NASA POWER). Pair with trend_at_point for the long-term picture.",
      "parameters": _schema({"lat": NUM, "lon": NUM})},
     {"type": "function", "name": "recent_history", "strict": True,
      "description": "Daily NASA POWER temperature and rainfall at a point for the last 1-60 months, summarised by "
