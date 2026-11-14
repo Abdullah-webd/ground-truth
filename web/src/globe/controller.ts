@@ -406,7 +406,7 @@ export class GlobeController {
         position: Cartesian3.fromDegrees(h.lon, h.lat),
         properties: { id: h.id },
         billboard: {
-          image: pinSprite(i + 1, h.id === selectedId),
+          image: pinSprite(i + 1, h.id === selectedId).toDataURL(),
           verticalOrigin: VerticalOrigin.BOTTOM,
           heightReference: HeightReference.CLAMP_TO_GROUND,
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
@@ -461,8 +461,10 @@ export class GlobeController {
     this.fires.removeAll();
     this.fireFootprints.removeAll();
     if (!fires) return;
-    const flame = flameSprite();
-    const ring = footprintSprite();
+    // Data-URL strings act as shared image ids, so 10,000 flames use one texture (a canvas would be
+    // copied into the texture atlas once per billboard and overflow it).
+    const flame = flameSprite().toDataURL();
+    const ring = footprintSprite().toDataURL();
     fires.forEach((f, i) => {
       const position = Cartesian3.fromDegrees(f.lon, f.lat);
       const strength = f.frp >= 100 ? 1 : f.frp >= 20 ? 0.72 : 0.5;
@@ -581,9 +583,14 @@ function footprintSprite(): HTMLCanvasElement {
   return c;
 }
 
-/** A numbered highlighter pin for a change hotspot. */
+const pinCache = new Map<string, HTMLCanvasElement>();
+/** A numbered highlighter pin for a change hotspot (cached, so re-selecting never adds new textures). */
 function pinSprite(n: number, selected: boolean): HTMLCanvasElement {
+  const key = `${n}:${selected}`;
+  const hit = pinCache.get(key);
+  if (hit) return hit;
   const c = document.createElement("canvas");
+  pinCache.set(key, c);
   c.width = 64;
   c.height = 84;
   const g = c.getContext("2d")!;

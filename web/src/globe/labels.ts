@@ -210,9 +210,13 @@ export class PlaceLabels {
     const hit = this.tiles.get(key);
     if (hit) return hit;
     const p = fetch(`/api/labels/${key}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((body: { labels: LabelItem[] } | null) => {
-        const items = body?.labels ?? [];
+      .then((r) => {
+        // A failed tile is retried on the next camera move rather than remembered as "no names here".
+        if (!r.ok) throw new Error(`labels ${r.status}`);
+        return r.json();
+      })
+      .then((body: { labels: LabelItem[] }) => {
+        const items = body.labels ?? [];
         this.tiles.set(key, items);
         this.tileOrder.push(key);
         if (this.tileOrder.length > CACHE_TILES) this.tiles.delete(this.tileOrder.shift()!);
@@ -257,8 +261,11 @@ export class PlaceLabels {
         position: pos,
         text: style.upper ? it.n.toUpperCase() : it.n,
         font: `${style.font} ${FAMILY}`,
-        fillColor: style.fill.withAlpha(0),
-        outlineColor: OUTLINE.withAlpha(0),
+        // Colours stay fixed: Cesium caches one glyph image per font + colour, so animating colour would
+        // mint new glyphs every frame until the texture atlas overflows. The entrance animates scale instead.
+        fillColor: style.fill,
+        outlineColor: OUTLINE,
+        scale: 0.8,
         outlineWidth: 3,
         style: LabelStyle.FILL_AND_OUTLINE,
         horizontalOrigin: HorizontalOrigin.CENTER,
@@ -348,21 +355,20 @@ export class PlaceLabels {
     }
   }
 
+  /** `a` is the entrance progress (0 hidden … 1 settled): names grow from 80 % to full size. */
   private setAlpha(p: Placed, a: number) {
     p.alpha = a;
-    const style = STYLE[p.item.k] ?? STYLE.poi;
-    p.label.fillColor = style.fill.withAlpha(a);
-    p.label.outlineColor = OUTLINE.withAlpha(0.85 * a);
-    if (a === 0) p.label.show = false;
+    p.label.scale = 0.8 + 0.2 * a;
+    p.label.show = a > 0;
   }
 
-  /** Names ease in (and out) over ~220 ms rather than popping. */
+  /** Names settle in over ~220 ms rather than popping; leaving names hide promptly. */
   private fade() {
     let moving = false;
     for (const p of this.placed.values()) {
       if (p.alpha === p.target) continue;
       const step = 0.16;
-      const next = p.target > p.alpha ? Math.min(1, p.alpha + step) : Math.max(0, p.alpha - step * 1.4);
+      const next = p.target > p.alpha ? Math.min(1, p.alpha + step) : 0;
       this.setAlpha(p, next);
       if (next !== p.target) moving = true;
     }
