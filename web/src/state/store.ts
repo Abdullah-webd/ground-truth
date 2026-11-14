@@ -20,6 +20,8 @@ interface State {
   buildings: boolean;
   pendingAsk: { text: string; key: number } | null;
   showFires: boolean;
+  showLabels: boolean;
+  setShowLabels: (on: boolean) => void;
   fires: Fire[] | null;
   setFires: (f: Fire[] | null) => void;
   selection: Selection;
@@ -54,6 +56,8 @@ export const useApp = create<State>((set) => ({
   buildings: true,
   pendingAsk: null,
   showFires: false,
+  showLabels: true,
+  setShowLabels: (showLabels) => set({ showLabels }),
   fires: null,
   setFires: (fires) => set({ fires }),
   selection: null,

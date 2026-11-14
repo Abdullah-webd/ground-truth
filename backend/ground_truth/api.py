@@ -8,7 +8,7 @@ import time
 import uuid
 from typing import Annotated
 
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import FastAPI, HTTPException, Path, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -19,6 +19,7 @@ from .change import ChangeError, EarthEngineUnavailable, detect_change
 from .config import CESIUM_ION_TOKEN, DERIVED, FIRMS_MAP_KEY, OPENAI_API_KEY
 from .fires import fires
 from .geo import PlaceNotFound, locate
+from .labels import LabelsUnavailable, labels as tile_labels, nearest_place
 from .nowcast import UpstreamError, now_vs_normal
 
 log = logging.getLogger("api")
@@ -82,6 +83,8 @@ def _call(fn, *args, **kwargs):
         raise _error(502, "upstream_failed", str(exc)) from exc
     except EarthEngineUnavailable as exc:
         raise _error(503, "earth_engine_unavailable", str(exc)) from exc
+    except LabelsUnavailable as exc:
+        raise _error(503, "labels_unavailable", str(exc)) from exc
     except Exception as exc:  # Earth Engine and other unexpected failures
         msg = str(exc)
         if "timed out" in msg.lower() or "deadline" in msg.lower():
@@ -143,6 +146,19 @@ def now(lat: Lat, lon: Lon):
 @app.get("/api/fires")
 def live_fires(bbox: str | None = None, limit: Annotated[int | None, Query(ge=1, le=20000)] = None):
     return _call(fires, _parse_bbox(bbox), limit)
+
+
+@app.get("/api/labels/{z}/{x}/{y}")
+def place_labels(z: Annotated[int, Path(ge=0, le=14)], x: Annotated[int, Path(ge=0)], y: Annotated[int, Path(ge=0)]):
+    """Place, street and landmark names for one map tile (OpenStreetMap via OpenFreeMap)."""
+    body = _call(tile_labels, z, x, y)
+    return JSONResponse(body, headers={"Cache-Control": "public, max-age=86400"})
+
+
+@app.get("/api/nearest-place")
+def nearest(lat: Lat, lon: Lon):
+    """The closest named town or neighbourhood, with distance and direction."""
+    return {"place": _call(nearest_place, lat, lon)}
 
 
 @app.get("/api/locate")

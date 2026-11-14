@@ -35,6 +35,7 @@ import {
 } from "cesium";
 import gsap from "gsap";
 import type { BBox, Fire, Hotspot } from "../lib/types";
+import { PlaceLabels, type LabelItem } from "./labels";
 
 const GIBS = "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best";
 const gibsCredit = new Credit("Imagery: NASA GIBS / EOSDIS", false);
@@ -46,7 +47,7 @@ const OVERLAY_ALPHA = 0.82;
 const OVERLAY_FADE_LOW = 300_000; // m: overlay nearly gone below this camera height
 const OVERLAY_FADE_HIGH = 1_500_000; // m: overlay fully shown above this
 const BUILDINGS_BELOW = 80_000; // m: Google 3D city appears below this camera height
-const STREET_LABELS_BELOW = 400_000; // m: labelled imagery below this; clean imagery from orbit
+
 const reduceMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 function gibs(layer: string, time: string, matrix: string, ext: string, maximumLevel: number) {
@@ -71,7 +72,7 @@ export class GlobeController {
   readonly photorealistic: boolean;
   private night: ImageryLayer;
   private satellite: ImageryLayer;
-  private satelliteLabels: ImageryLayer | null = null;
+  readonly places: PlaceLabels;
   private reference: ImageryLayer[] = [];
   private base: BaseMap = "satellite";
   private buildingsWanted = true;
@@ -136,15 +137,11 @@ export class GlobeController {
         credit: new Credit("Sentinel-2 cloudless 2023 by EOX IT Services GmbH (contains modified Copernicus Sentinel data 2023), CC BY-NC-SA 4.0", false),
       });
     if (this.photorealistic) {
-      // Bing Maps aerial imagery via Cesium ion: sub-metre detail in most cities. Clean imagery from
-      // orbit (labels baked into the imagery look blurry at globe scale); labelled imagery close up.
+      // Bing Maps aerial imagery via Cesium ion: sub-metre detail in most cities, kept free of baked-in
+      // text. Names come from our own crisp label layer (PlaceLabels), which also floats over the 3D city.
+      // (Raster label overlays were tested and rejected: text breaks up when draped over terrain and buildings.)
       this.satellite = ImageryLayer.fromProviderAsync(createWorldImageryAsync({ style: IonWorldImageryStyle.AERIAL }));
       layers.add(this.satellite);
-      this.satelliteLabels = ImageryLayer.fromProviderAsync(
-        createWorldImageryAsync({ style: IonWorldImageryStyle.AERIAL_WITH_LABELS }),
-      );
-      this.satelliteLabels.show = false;
-      layers.add(this.satelliteLabels);
       // If Cesium ion can't be reached (bad venue Wi-Fi, DNS), fall back to Sentinel-2 so the globe still shows Earth.
       this.satellite.errorEvent.addEventListener(() => {
         const idx = layers.indexOf(this.satellite);
@@ -152,10 +149,6 @@ export class GlobeController {
         layers.add(fallback, Math.max(0, idx));
         layers.remove(this.satellite, true);
         this.satellite = fallback;
-        if (this.satelliteLabels) {
-          layers.remove(this.satelliteLabels, true);
-          this.satelliteLabels = null;
-        }
         this.applyBase();
       });
     } else {
@@ -164,10 +157,9 @@ export class GlobeController {
 
     const coast = layers.addImageryProvider(gibs("Coastlines_15m", "2020-01-01", "GoogleMapsCompatible_Level13", "png", 9));
     coast.alpha = 0.35;
-    const labels = layers.addImageryProvider(gibs("Reference_Labels_15m", "2020-01-01", "GoogleMapsCompatible_Level13", "png", 12));
-    labels.alpha = 0.85;
-    this.reference = [coast, labels];
+    this.reference = [coast];
     this.applyBase();
+    this.places = new PlaceLabels(this.viewer);
 
     this.fireFootprints = scene.primitives.add(new BillboardCollection({ scene }));
     this.fires = scene.primitives.add(new BillboardCollection({ scene }));
@@ -186,7 +178,6 @@ export class GlobeController {
       const wantCity = this.photorealistic && this.buildingsWanted && this.base === "satellite" && h < BUILDINGS_BELOW;
       if (wantCity && !this.tileset && !this.tilesetLoading) void this.loadTileset();
       if (this.tileset) this.tileset.show = wantCity;
-      if (this.satelliteLabels) this.satelliteLabels.show = this.base === "satellite" && h < STREET_LABELS_BELOW;
     });
   }
 
@@ -202,6 +193,15 @@ export class GlobeController {
     } finally {
       this.tilesetLoading = false;
     }
+  }
+
+  /** Show or hide all place names. */
+  setLabels(on: boolean) {
+    this.places.setEnabled(on);
+  }
+
+  labelItemFromEntity(entityId?: string): LabelItem | undefined {
+    return this.places.itemFor(entityId);
   }
 
   /** Opening shot: Earth swings in from deep space. */
@@ -237,9 +237,9 @@ export class GlobeController {
   private applyBase() {
     this.night.show = this.base === "night";
     this.satellite.show = this.base === "satellite";
-    // NASA reference labels help on the night map, and on Sentinel-2, which has no labels of its own.
-    const labelsNeeded = this.base === "night" || !this.photorealistic;
-    for (const r of this.reference) r.show = labelsNeeded;
+    // Coastlines help on the night map and on Sentinel-2.
+    const coastNeeded = this.base === "night" || !this.photorealistic;
+    for (const r of this.reference) r.show = coastNeeded;
   }
 
   setBase(base: BaseMap) {
@@ -274,7 +274,7 @@ export class GlobeController {
     const provider = await SingleTileImageryProvider.fromUrl(url, { rectangle: WORLD });
     if (token !== this.overlayToken) return;
     const layer = new ImageryLayer(provider, { alpha: 0 });
-    layers.add(layer, layers.indexOf(this.satelliteLabels ?? this.satellite) + 1);
+    layers.add(layer, layers.indexOf(this.satellite) + 1);
     const entry = { layer, fade: { v: 0 } };
     this.overlays.add(entry);
     this.overlay = entry;
@@ -503,6 +503,7 @@ export class GlobeController {
 
   destroy() {
     this.pickHandlers.clear();
+    this.places.destroy();
     if (!this.viewer.isDestroyed()) this.viewer.destroy();
   }
 }

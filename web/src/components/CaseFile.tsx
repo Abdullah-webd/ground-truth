@@ -342,10 +342,22 @@ function PairCase({ index }: { index: number }) {
 
 function FireCase({ fire }: { fire: Fire }) {
   const size = fireSize(fire.frp);
+  const near = useQuery({
+    queryKey: ["nearest", fire.lat.toFixed(3), fire.lon.toFixed(3)],
+    queryFn: () => api.nearestPlace(fire.lat, fire.lon),
+    staleTime: Infinity,
+    retry: 1,
+  });
+  const place = near.data?.place;
+  const where = place
+    ? place.distance_km < 1.5
+      ? `In ${place.name}`
+      : `About ${place.distance_km < 10 ? place.distance_km.toFixed(1) : Math.round(place.distance_km)} km ${place.direction} of ${place.name}`
+    : null;
   const conf = fire.confidence === "h" ? "high" : fire.confidence === "l" ? "low" : "normal";
   return (
     <>
-      <Header eyebrow="Fire seen from space" title={size.title} sub={formatLatLon(fire.lat, fire.lon)} />
+      <Header eyebrow="Fire seen from space" title={size.title} sub={where ? `${where}. ${formatLatLon(fire.lat, fire.lon)}` : formatLatLon(fire.lat, fire.lon)} />
       <div className="flex flex-col gap-4 px-5 py-4">
         <div className="flex items-start gap-3">
           <Flame scale={1.4} />

@@ -163,6 +163,16 @@ export interface Fires {
   fetched_at: string;
 }
 
+export interface NearestPlace {
+  name: string;
+  kind: string;
+  distance_km: number;
+  direction: string;
+  lat: number;
+  lon: number;
+  source: string;
+}
+
 export interface Place {
   name: string;
   lat: number;

@@ -95,3 +95,5 @@ Tested:
 - Google Places content: restricted in the EEA and requires Google billing ([EEA FAQ](https://developers.google.com/maps/comms/eea/faq?authuser=4)); not pursued.
 
 Proposed (not built): crisp vector labels from OpenFreeMap at every height (countries to streets and landmarks), floating above 3D buildings, decluttered by rank; keep Bing labelled imagery at street zoom and drape it on the 3D city.
+
+Built (2026-11-14): OSM vector labels shipped. The Google 2D `layerRoadmap` overlay (ion asset 3830182 with overlay options) was implemented and tested in the app, then removed: draped over terrain and the 3D city its street names broke into fragments, it greyed the roads, and Lagos showed almost no labels. OSM labels cover streets and businesses instead (Ikeja: Oba Akran Avenue, Ikeja Fire Station, Polaris Bank; SoMa: 6th Street, Harrison & 6th, West SoMa).

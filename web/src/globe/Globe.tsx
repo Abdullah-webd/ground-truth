@@ -16,8 +16,15 @@ export function Globe({ onReady, ionToken }: { onReady?: () => void; ionToken: s
       return;
     }
     globe.set(controller);
+    // Lets the end-to-end tests place the camera precisely (read-only use).
+    (window as unknown as { __groundTruthGlobe?: GlobeController }).__groundTruthGlobe = controller;
     const off = controller.onPick(({ lat, lon, entityId }) => {
       const hotspot = controller.hotspotIdFromEntity(entityId) ?? entityId?.replace(/^hotspot:/, "");
+      const place = controller.labelItemFromEntity(entityId);
+      if (place) {
+        useApp.getState().select({ kind: "point", lat: place.lat, lon: place.lon, name: place.n });
+        return;
+      }
       const fireIndex = controller.fireIndexFromEntity(entityId);
       const fire = fireIndex != null ? useApp.getState().fires?.[fireIndex] : undefined;
       if (fire) {

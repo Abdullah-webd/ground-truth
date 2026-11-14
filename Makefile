@@ -39,4 +39,4 @@ eval:             ## Ask the analyst 14 test questions and grade the answers (us
 	cd backend && ../$(PY) scripts/agent_eval.py
 
 e2e:              ## Browser walkthrough with screenshots (backend + web must be running)
-	cd web && node e2e/walkthrough.mjs http://localhost:5179 ../.verify/walkthrough
+	cd web && node e2e/walkthrough.mjs && node e2e/labels.mjs http://localhost:5179 ../.verify/walkthrough

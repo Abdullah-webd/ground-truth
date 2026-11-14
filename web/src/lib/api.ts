@@ -5,6 +5,7 @@ import type {
   Divergence,
   Fires,
   NowVsNormal,
+  NearestPlace,
   Place,
   PointTrend,
   RegionTrend,
@@ -58,6 +59,8 @@ export const api = {
     get<NowVsNormal>("/api/now", { lat: lat.toFixed(3), lon: lon.toFixed(3) }, signal),
   fires: (bbox?: BBox) => get<Fires>("/api/fires", { bbox: bboxParam(bbox) }),
   locate: (q: string) => get<Place>("/api/locate", { q }),
+  nearestPlace: (lat: number, lon: number) =>
+    get<{ place: NearestPlace | null }>("/api/nearest-place", { lat: lat.toFixed(4), lon: lon.toFixed(4) }),
   checks: () => get<Checks>("/api/checks"),
 };
 

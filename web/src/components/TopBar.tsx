@@ -46,7 +46,7 @@ function Tip({ title, body, children, align = "center" }: { title: string; body:
 }
 
 export function TopBar() {
-  const { variable, setVariable, base, setBase, buildings, setBuildings, showFires, toggleFires, setChecksOpen } = useApp();
+  const { variable, setVariable, base, setBase, buildings, setBuildings, showFires, toggleFires, setChecksOpen, showLabels, setShowLabels } = useApp();
   const photorealistic = useQuery({ queryKey: ["config"], queryFn: api.config, staleTime: Infinity }).data?.photorealistic ?? false;
   const variables = useVariables().data ?? [];
 
@@ -135,6 +135,19 @@ export function TopBar() {
             }`}
           >
             3D buildings
+          </button>
+        </Tip>
+        <Tip
+          title="Place names"
+          body="Countries, cities, neighbourhoods, streets and landmarks, more as you zoom in. Click a name to get its report. From OpenStreetMap."
+        >
+          <button
+            type="button"
+            onClick={() => setShowLabels(!showLabels)}
+            aria-pressed={showLabels}
+            className={`btn whitespace-nowrap rounded-lg border px-3 py-1.5 text-sm ${showLabels ? "border-ink bg-ink text-paper" : "btn-quiet border-line text-muted"}`}
+          >
+            Names
           </button>
         </Tip>
         <Tip title="Fires burning now" body="Every hot spot NASA's VIIRS satellite has seen burning in the last 24 hours, worldwide. Updated every 10 minutes.">
