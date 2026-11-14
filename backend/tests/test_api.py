@@ -110,3 +110,30 @@ def test_live_now_fires_locate():
     assert f["count"] > 100 and len(f["fires"]) == 5
     p = client.get("/api/locate", params={"q": "Lagos, Nigeria"}).json()
     assert abs(p["lat"] - 6.45) < 0.5
+
+
+def test_rate_limit_returns_friendly_429(monkeypatch):
+    from ground_truth import ratelimit
+
+    ratelimit.reset()
+    monkeypatch.setitem(ratelimit.LIMITS, "locate", (2, 1000))
+    monkeypatch.setattr("ground_truth.api.locate", lambda q: {"name": q, "lat": 0, "lon": 0, "bbox": [0, 0, 1, 1]})
+    hdr = {"X-Forwarded-For": "203.0.113.7"}
+    assert client.get("/api/locate", params={"q": "Lagos"}, headers=hdr).status_code == 200
+    assert client.get("/api/locate", params={"q": "Lagos"}, headers=hdr).status_code == 200
+    r = client.get("/api/locate", params={"q": "Lagos"}, headers=hdr)
+    assert r.status_code == 429
+    assert r.json()["error"]["code"] == "rate_limited"
+    # A different visitor is not affected.
+    assert client.get("/api/locate", params={"q": "Lagos"}, headers={"X-Forwarded-For": "198.51.100.9"}).status_code == 200
+    ratelimit.reset()
+
+
+def test_web_app_routes_fall_back_to_index():
+    from ground_truth import api
+
+    if not api.WEB_DIST.is_dir():
+        return  # web not built in this environment
+    r = client.get("/explore")
+    assert r.status_code == 200 and "<div id=\"root\">" in r.text
+    assert client.get("/api/nope").status_code == 404

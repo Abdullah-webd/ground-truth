@@ -4,22 +4,25 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import time
 import uuid
+from pathlib import Path as Path_
 from typing import Annotated
 
 from fastapi import FastAPI, HTTPException, Path, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, Response, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import agent, checks, store, voice
+from . import agent, checks, ratelimit, store, voice
 from .change import ChangeError, EarthEngineUnavailable, detect_change
-from .config import CESIUM_ION_TOKEN, DERIVED, FIRMS_MAP_KEY, OPENAI_API_KEY
+from .config import CESIUM_ION_TOKEN, DERIVED, FIRMS_MAP_KEY, OPENAI_API_KEY, ROOT
 from .fires import fires
 from .geo import PlaceNotFound, locate
-from .labels import LabelsUnavailable, labels as tile_labels, nearest_place
+from .labels import LabelsUnavailable, nearest_place
+from .labels import labels as tile_labels
 from .nowcast import UpstreamError, now_vs_normal
 
 log = logging.getLogger("api")
@@ -133,8 +136,9 @@ def divergence_cluster(variable: Variable, cluster: str, color: str | None = Non
 
 
 @app.get("/api/change")
-def change(bbox: str, year_a: Annotated[int, Query(ge=2017, le=2025)] = 2018,
+def change(request: Request, bbox: str, year_a: Annotated[int, Query(ge=2017, le=2025)] = 2018,
            year_b: Annotated[int, Query(ge=2017, le=2025)] = 2024):
+    ratelimit.check(request, "change")
     return _call(detect_change, _parse_bbox(bbox), year_a, year_b)
 
 
@@ -162,7 +166,8 @@ def nearest(lat: Lat, lon: Lon):
 
 
 @app.get("/api/locate")
-def place(q: Annotated[str, Query(min_length=1, max_length=200)]):
+def place(request: Request, q: Annotated[str, Query(min_length=1, max_length=200)]):
+    ratelimit.check(request, "locate")
     return _call(locate, q)
 
 
@@ -177,8 +182,9 @@ class Turn(BaseModel):
 
 
 @app.post("/api/agent/turn")
-def agent_turn(turn: Turn):
+def agent_turn(turn: Turn, request: Request):
     """Server-Sent Events: status, ui, tool, text, error and done events, one JSON object each."""
+    ratelimit.check(request, "agent")
 
     def events():
         for ev in agent.run_turn(turn.session_id, turn.text):
@@ -189,8 +195,9 @@ def agent_turn(turn: Turn):
 
 
 @app.post("/api/voice/session")
-def voice_session():
+def voice_session(request: Request):
     """Mint a short-lived Realtime client secret (the browser never sees the real API key)."""
+    ratelimit.check(request, "voice")
     try:
         return voice.mint_client_secret()
     except voice.VoiceUnavailable as exc:
@@ -206,9 +213,13 @@ class VoiceTool(BaseModel):
 
 
 @app.post("/api/voice/tool")
-def voice_tool(call: VoiceTool):
+def voice_tool(call: VoiceTool, request: Request):
     if call.name not in {t["name"] for t in agent.TOOLS}:
         raise _error(400, "unknown_tool", f"unknown tool '{call.name}'")
+    if call.name == "detect_change":
+        ratelimit.check(request, "change")
+    elif call.name == "locate_place":
+        ratelimit.check(request, "locate")
     return voice.run_voice_tool(call.name, call.arguments)
 
 
@@ -220,3 +231,25 @@ class VoiceCheck(BaseModel):
 @app.post("/api/voice/check")
 def voice_check(body: VoiceCheck):
     return {"unverified_numbers": voice.check_numbers(body.text, body.results)}
+
+
+# ---------------------------------------------------------------- the website (production)
+# In production one service serves both the API and the built web app (web/dist). Locally, Vite serves the web app.
+
+WEB_DIST = Path_(os.getenv("WEB_DIST", str(ROOT / "web" / "dist")))
+
+if WEB_DIST.is_dir():
+    _index = WEB_DIST / "index.html"
+
+    @app.get("/{path:path}", include_in_schema=False)
+    def web_app(path: str):
+        if path.startswith("api/"):
+            raise _error(404, "not_found", f"no API route /{path}")
+        candidate = (WEB_DIST / path).resolve()
+        if path and candidate.is_file() and WEB_DIST.resolve() in candidate.parents:
+            # Hashed build assets never change; everything else revalidates.
+            immutable = path.startswith("assets/")
+            return FileResponse(candidate, headers={"Cache-Control": "public, max-age=31536000, immutable" if immutable
+                                                    else "public, max-age=3600"})
+        # Client-side routes (/, /explore) get the app shell.
+        return FileResponse(_index, headers={"Cache-Control": "no-cache"})

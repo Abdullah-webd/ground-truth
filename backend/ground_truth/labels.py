@@ -216,7 +216,7 @@ def tile_labels(z: int, x: int, y: int, data: bytes) -> list[dict]:
     layers = decode_tile(data)
     out: list[dict] = []
 
-    def add(p: dict, kind: str, cls: str, rank: int | float):
+    def add(p: dict, kind: str, cls: str, rank: float):
         pt, _ = _anchor(p)
         name = _name(p)
         if pt is None or not name:
