@@ -1,0 +1,54 @@
+{
+ "id": "temperature",
+ "label": "Surface temperature",
+ "units": "\u00b0C",
+ "long_name": "Annual mean surface temperature anomaly (vs 1951\u20131980)",
+ "source": "NASA GISS Surface Temperature Analysis (GISTEMP v4), 1200 km smoothing, 2\u00b0 grid",
+ "citation": "GISTEMP Team (2026). GISS Surface Temperature Analysis, version 4. NASA GISS. Lenssen et al. (2024), JGR Atmospheres.",
+ "url": "https://data.giss.nasa.gov/gistemp/",
+ "grid": {
+  "name": "2deg",
+  "step": 2.0
+ },
+ "years": [
+  1980,
+  2025
+ ],
+ "n_years": 46,
+ "years_missing": [],
+ "palette": [
+  "#2166ac",
+  "#4393c3",
+  "#92c5de",
+  "#d1e5f0",
+  "#f7f7f7",
+  "#fddbc7",
+  "#f4a582",
+  "#d6604d",
+  "#b2182b"
+ ],
+ "increase_means": "warming",
+ "decrease_means": "cooling",
+ "land_only": false,
+ "method": "Mann-Kendall with bias-corrected AR(1) variance correction (Yue & Wang 2004; quadratic detrending), Theil-Sen slope, Benjamini-Hochberg FDR",
+ "fdr_q": 0.05,
+ "legend": {
+  "significance": {
+   "limit": 0.7920314818620685,
+   "units": "\u00b0C per decade"
+  },
+  "frames": {
+   "limit": 2.370833158493042,
+   "units": "\u00b0C",
+   "baseline": "1951\u20131980"
+  }
+ },
+ "summary": {
+  "cells_tested": 15901,
+  "cells_significant": 10774,
+  "share_area_significant_increase": 0.7005198516587473,
+  "share_area_significant_decrease": 0.009028944392128552,
+  "raw_p_below_005_share": 0.7010879818879315
+ },
+ "built": "2026-11-13T12:05:01+00:00"
+}

@@ -1,0 +1,12 @@
+{
+ "id": "gistemp-global-trend",
+ "title": "Global temperature trend matches NASA GISS",
+ "detail": "Area-weighted mean of the 2\u00b0 grid vs NASA GISS's published global series (GLB.Ts+dSST, J\u2013D), 1980\u20132025.",
+ "ours": 0.2102,
+ "reference": 0.2067,
+ "units": "\u00b0C per decade",
+ "tolerance": 0.02,
+ "difference": 0.0035,
+ "passed": true,
+ "source": "https://data.giss.nasa.gov/gistemp/tabledata_v4/GLB.Ts+dSST.csv"
+}

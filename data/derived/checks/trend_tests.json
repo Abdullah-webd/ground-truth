@@ -1,0 +1,109 @@
+{
+  "alpha": 0.05,
+  "replicates": 1500,
+  "seed": 7,
+  "false_alarm": {
+    "Original Mann-Kendall": {
+      "n=18, AR(1) phi=0.0": 0.06266666666666666,
+      "n=18, AR(1) phi=0.3": 0.12466666666666666,
+      "n=18, AR(1) phi=0.6": 0.2733333333333333,
+      "n=25, AR(1) phi=0.0": 0.042666666666666665,
+      "n=25, AR(1) phi=0.3": 0.12733333333333333,
+      "n=25, AR(1) phi=0.6": 0.2713333333333333,
+      "n=45, AR(1) phi=0.0": 0.059333333333333335,
+      "n=45, AR(1) phi=0.3": 0.14066666666666666,
+      "n=45, AR(1) phi=0.6": 0.312
+    },
+    "Hamed-Rao (all lags)": {
+      "n=18, AR(1) phi=0.0": 0.1,
+      "n=18, AR(1) phi=0.3": 0.14533333333333334,
+      "n=18, AR(1) phi=0.6": 0.2773333333333333,
+      "n=25, AR(1) phi=0.0": 0.07333333333333333,
+      "n=25, AR(1) phi=0.3": 0.15266666666666667,
+      "n=25, AR(1) phi=0.6": 0.26266666666666666,
+      "n=45, AR(1) phi=0.0": 0.102,
+      "n=45, AR(1) phi=0.3": 0.15666666666666668,
+      "n=45, AR(1) phi=0.6": 0.23866666666666667
+    },
+    "Pre-whitening (von Storch)": {
+      "n=18, AR(1) phi=0.0": 0.044,
+      "n=18, AR(1) phi=0.3": 0.042,
+      "n=18, AR(1) phi=0.6": 0.046,
+      "n=25, AR(1) phi=0.0": 0.028666666666666667,
+      "n=25, AR(1) phi=0.3": 0.04,
+      "n=25, AR(1) phi=0.6": 0.044,
+      "n=45, AR(1) phi=0.0": 0.054,
+      "n=45, AR(1) phi=0.3": 0.04733333333333333,
+      "n=45, AR(1) phi=0.6": 0.048666666666666664
+    },
+    "Trend-free pre-whitening (Yue)": {
+      "n=18, AR(1) phi=0.0": 0.05266666666666667,
+      "n=18, AR(1) phi=0.3": 0.13,
+      "n=18, AR(1) phi=0.6": 0.306,
+      "n=25, AR(1) phi=0.0": 0.04533333333333334,
+      "n=25, AR(1) phi=0.3": 0.14,
+      "n=25, AR(1) phi=0.6": 0.32866666666666666,
+      "n=45, AR(1) phi=0.0": 0.06066666666666667,
+      "n=45, AR(1) phi=0.3": 0.16,
+      "n=45, AR(1) phi=0.6": 0.3873333333333333
+    },
+    "Ours (variance correction + worst-case check)": {
+      "n=18, AR(1) phi=0.0": 0.044,
+      "n=18, AR(1) phi=0.3": 0.06133333333333333,
+      "n=18, AR(1) phi=0.6": 0.07866666666666666,
+      "n=25, AR(1) phi=0.0": 0.032,
+      "n=25, AR(1) phi=0.3": 0.052,
+      "n=25, AR(1) phi=0.6": 0.07933333333333334,
+      "n=45, AR(1) phi=0.0": 0.051333333333333335,
+      "n=45, AR(1) phi=0.3": 0.04733333333333333,
+      "n=45, AR(1) phi=0.6": 0.058
+    }
+  },
+  "power": {
+    "Original Mann-Kendall": {
+      "Global-temperature-like (45 yr, 0.2/decade, sd 0.1)": 1.0,
+      "Strong (25 yr, 0.5/decade, sd 0.1)": 1.0,
+      "Moderate (25 yr, 0.3/decade, sd 0.3)": 0.906,
+      "Trend + autocorrelated noise (25 yr, AR 0.4)": 0.938,
+      "Accelerating decline (18 yr, Greenland-like)": 1.0,
+      "Rise then flatten (18 yr, S-curve)": 1.0,
+      "Step change (25 yr)": 0.934
+    },
+    "Hamed-Rao (all lags)": {
+      "Global-temperature-like (45 yr, 0.2/decade, sd 0.1)": 0.9893333333333333,
+      "Strong (25 yr, 0.5/decade, sd 0.1)": 0.9833333333333333,
+      "Moderate (25 yr, 0.3/decade, sd 0.3)": 0.9013333333333333,
+      "Trend + autocorrelated noise (25 yr, AR 0.4)": 0.9106666666666666,
+      "Accelerating decline (18 yr, Greenland-like)": 1.0,
+      "Rise then flatten (18 yr, S-curve)": 1.0,
+      "Step change (25 yr)": 0.928
+    },
+    "Pre-whitening (von Storch)": {
+      "Global-temperature-like (45 yr, 0.2/decade, sd 0.1)": 0.7453333333333333,
+      "Strong (25 yr, 0.5/decade, sd 0.1)": 0.576,
+      "Moderate (25 yr, 0.3/decade, sd 0.3)": 0.5306666666666666,
+      "Trend + autocorrelated noise (25 yr, AR 0.4)": 0.284,
+      "Accelerating decline (18 yr, Greenland-like)": 1.0,
+      "Rise then flatten (18 yr, S-curve)": 0.017333333333333333,
+      "Step change (25 yr)": 0.34933333333333333
+    },
+    "Trend-free pre-whitening (Yue)": {
+      "Global-temperature-like (45 yr, 0.2/decade, sd 0.1)": 1.0,
+      "Strong (25 yr, 0.5/decade, sd 0.1)": 1.0,
+      "Moderate (25 yr, 0.3/decade, sd 0.3)": 0.87,
+      "Trend + autocorrelated noise (25 yr, AR 0.4)": 0.9326666666666666,
+      "Accelerating decline (18 yr, Greenland-like)": 1.0,
+      "Rise then flatten (18 yr, S-curve)": 1.0,
+      "Step change (25 yr)": 0.932
+    },
+    "Ours (variance correction + worst-case check)": {
+      "Global-temperature-like (45 yr, 0.2/decade, sd 0.1)": 1.0,
+      "Strong (25 yr, 0.5/decade, sd 0.1)": 1.0,
+      "Moderate (25 yr, 0.3/decade, sd 0.3)": 0.832,
+      "Trend + autocorrelated noise (25 yr, AR 0.4)": 0.6333333333333333,
+      "Accelerating decline (18 yr, Greenland-like)": 1.0,
+      "Rise then flatten (18 yr, S-curve)": 0.9966666666666667,
+      "Step change (25 yr)": 0.6713333333333333
+    }
+  }
+}

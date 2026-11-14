@@ -1,0 +1,54 @@
+{
+ "id": "rainfall",
+ "label": "Rainfall",
+ "units": "mm",
+ "long_name": "Annual total precipitation",
+ "source": "NASA GPM IMERG Final Run v07, monthly 0.1\u00b0, aggregated to 0.5\u00b0",
+ "citation": "Huffman, G. J. et al. (2023). GPM IMERG Final Precipitation L3 1 month 0.1 degree x 0.1 degree V07. NASA GES DISC. doi:10.5067/GPM/IMERG/3B-MONTH/07",
+ "url": "https://gpm.nasa.gov/data/imerg",
+ "grid": {
+  "name": "0.5deg",
+  "step": 0.5
+ },
+ "years": [
+  2001,
+  2024
+ ],
+ "n_years": 24,
+ "years_missing": [],
+ "palette": [
+  "#8c510a",
+  "#bf812d",
+  "#dfc27d",
+  "#f6e8c3",
+  "#f5f5f5",
+  "#c7eae5",
+  "#80cdc1",
+  "#35978f",
+  "#01665e"
+ ],
+ "increase_means": "getting wetter",
+ "decrease_means": "getting drier",
+ "land_only": false,
+ "method": "Mann-Kendall with bias-corrected AR(1) variance correction (Yue & Wang 2004; quadratic detrending), Theil-Sen slope, Benjamini-Hochberg FDR",
+ "fdr_q": 0.05,
+ "legend": {
+  "significance": {
+   "limit": 216.45938548314692,
+   "units": "mm per decade"
+  },
+  "frames": {
+   "limit": 454.8472935353177,
+   "units": "mm",
+   "baseline": "2001\u20132024 mean"
+  }
+ },
+ "summary": {
+  "cells_tested": 246417,
+  "cells_significant": 15983,
+  "share_area_significant_increase": 0.03389443742974837,
+  "share_area_significant_decrease": 0.008793390066849418,
+  "raw_p_below_005_share": 0.19731593193651412
+ },
+ "built": "2026-11-13T12:06:05+00:00"
+}
