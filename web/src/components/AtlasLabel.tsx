@@ -41,7 +41,7 @@ function Label({ text }: { text: string }) {
       layoutId="atlas-label"
       exit={{ opacity: 0, transition: { duration: 0.25 } }}
       transition={{ type: "spring", duration: 0.7, bounce: 0 }}
-      className="atlas text-center text-[clamp(56px,11vw,168px)] text-ink [text-shadow:0_2px_24px_rgba(5,8,13,.85)]"
+      className="atlas text-center text-[clamp(40px,11vw,168px)] text-ink [text-shadow:0_2px_24px_rgba(5,8,13,.85)]"
     >
       <span className="sr-only">{text}</span>
       <span aria-hidden className="inline-flex overflow-hidden pb-[0.06em] pt-[0.12em]">

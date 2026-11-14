@@ -21,6 +21,7 @@ import {
   NearFarScalar,
   VerticalOrigin,
   Rectangle,
+  SceneMode,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   SingleTileImageryProvider,
@@ -66,6 +67,8 @@ export type PickHandler = (pick: { lat: number; lon: number; entityId?: string }
 export interface GlobeOptions {
   /** Cesium ion token: enables Bing aerial imagery, world terrain and Google Photorealistic 3D Tiles. */
   ionToken?: string | null;
+  /** Start as a flat map (phones): fills a tall narrow screen the way map apps do. */
+  flatMap?: boolean;
 }
 
 export class GlobeController {
@@ -117,16 +120,17 @@ export class GlobeController {
       selectionIndicator: false,
       contextOptions: { webgl: { preserveDrawingBuffer: true, alpha: false } },
       orderIndependentTranslucency: false,
+      sceneMode: options.flatMap ? SceneMode.SCENE2D : SceneMode.SCENE3D,
       ...(terrain ? { terrain } : {}),
     });
     const { scene } = this.viewer;
-    // The platform is white paper: Earth floats on the page, no starfield.
-    scene.backgroundColor = Color.WHITE;
-    if (scene.skyBox) scene.skyBox.show = false;
+    // Earth in space: deep near-black with Cesium's real star catalogue (Tycho-2), dimmed by the dark
+    // background so it never competes with the data, and the atmosphere's soft blue limb.
+    scene.backgroundColor = Color.fromCssColorString("#05070b");
+    if (scene.skyBox) scene.skyBox.show = !options.flatMap;
     if (scene.sun) scene.sun.show = false;
     if (scene.moon) scene.moon.show = false;
-    scene.globe.baseColor = Color.fromCssColorString("#dfe3e6");
-    if (scene.skyAtmosphere) scene.skyAtmosphere.brightnessShift = 0.25;
+    scene.globe.baseColor = Color.fromCssColorString("#0b1220");
     scene.globe.showGroundAtmosphere = true;
     scene.globe.enableLighting = false;
     scene.globe.depthTestAgainstTerrain = this.photorealistic;
@@ -184,7 +188,7 @@ export class GlobeController {
       const altitude = Math.min(1, Math.max(0, (h - OVERLAY_FADE_LOW) / (OVERLAY_FADE_HIGH - OVERLAY_FADE_LOW)));
       for (const o of this.overlays) o.layer.alpha = o.fade.v * OVERLAY_ALPHA * (0.08 + 0.92 * altitude);
       // The photorealistic city takes over close to the ground.
-      const wantCity = this.photorealistic && this.buildingsWanted && this.base === "satellite" && h < BUILDINGS_BELOW;
+      const wantCity = this.photorealistic && this.buildingsWanted && this.base === "satellite" && h < BUILDINGS_BELOW && scene.mode === SceneMode.SCENE3D;
       if (wantCity && !this.tileset && !this.tilesetLoading) void this.loadTileset();
       if (this.tileset) this.tileset.show = wantCity;
     });
@@ -215,6 +219,15 @@ export class GlobeController {
 
   /** Opening shot: Earth swings in from deep space. */
   intro() {
+    if (this.isFlat) {
+      // A phone map should open full of land, not floating in space: frame Africa and Europe.
+      this.viewer.camera.flyTo({
+        destination: Rectangle.fromDegrees(-12, -30, 48, 38),
+        duration: reduceMotion() ? 0 : 1.6,
+        easingFunction: EasingFunction.QUINTIC_OUT,
+      });
+      return;
+    }
     this.viewer.camera.flyTo({
       destination: Cartesian3.fromDegrees(10, 12, 2.15e7),
       duration: reduceMotion() ? 0 : 1.8,
@@ -258,6 +271,20 @@ export class GlobeController {
 
   setBuildings(on: boolean) {
     this.buildingsWanted = on;
+  }
+
+  get isFlat(): boolean {
+    return this.viewer.scene.mode === SceneMode.SCENE2D;
+  }
+
+  /** Roll between the flat map and the 3D globe (animated, ~1.2 s; instant with reduced motion). */
+  setFlatMap(flat: boolean) {
+    const scene = this.viewer.scene;
+    if (flat === this.isFlat) return;
+    const d = reduceMotion() ? 0 : 1.2;
+    if (scene.skyBox) scene.skyBox.show = !flat;
+    if (flat) scene.morphTo2D(d);
+    else scene.morphTo3D(d);
   }
 
   /** Swap the data overlay with a crossfade. Later calls win over slower earlier loads. */

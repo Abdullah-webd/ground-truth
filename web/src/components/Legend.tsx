@@ -25,7 +25,7 @@ export function Legend({ meta, mode }: { meta: VariableMeta; mode: "trend" | "ye
         <span>{PLAIN[meta.id].up}</span>
       </div>
       {mode === "trend" && (
-        <div className="mt-2 flex items-center gap-2 text-[11px] text-muted">
+        <div className="legend-detail mt-2 flex items-center gap-2 text-[11px] text-muted">
           <span className="inline-block h-2.5 w-5 rounded-sm" style={{ background: "rgba(124,130,140,.6)" }} aria-hidden />
           Grey: no proven change
         </div>

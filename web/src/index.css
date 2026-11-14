@@ -16,6 +16,9 @@
   --color-accent-ink: #ffffff;
   --color-mark: #ffe14d;
   --color-mark-soft: #fff3b0;
+  --color-on-mark: #11181f;
+  --color-accent-hover: #2b3640;
+  --color-space: #05070b;
   --color-fire: #e5481f;
   --color-up: #c8413a;
   --color-down: #2f6db5;
@@ -79,7 +82,7 @@ body,
     color: var(--color-ink);
   }
   .btn-accent:hover {
-    background: #2b3640;
+    background: var(--color-accent-hover);
   }
   .btn-fire:hover {
     background: #c73a14;
@@ -183,5 +186,72 @@ body,
   ::view-transition-old(root),
   ::view-transition-new(root) {
     animation-duration: 0s !important;
+  }
+}
+
+/* The globe screen is space: dark surfaces (not pure black), off-white text, the same highlighter.
+   The landing page keeps the white "notebook" theme. */
+.theme-space {
+  color-scheme: dark;
+  --color-ground: #0b0f15;
+  --color-paper: #11161e;
+  --color-panel: #11161e;
+  --color-panel-2: #1a212c;
+  --color-line: #273140;
+  --color-ink: #e8edf2;
+  --color-muted: #9aa6b5;
+  --color-faint: #6f7c8c;
+  --color-accent: #e8edf2;
+  --color-accent-ink: #0b0f15;
+  --color-accent-hover: #ffffff;
+  --color-mark-soft: #3d3712;
+  --color-fire: #ff6a3d;
+  --color-up: #e8746b;
+  --color-down: #6aa6e6;
+  --color-ok: #57c486;
+  --color-bad: #ff8270;
+  background: var(--color-space);
+  color: var(--color-ink);
+}
+.theme-space .panel-shadow {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 18px 40px -18px rgba(0, 0, 0, 0.7);
+}
+/* On dark, the highlighter becomes a full marker band with dark text, so marked words stay readable. */
+.theme-space .mark {
+  color: var(--color-on-mark);
+  background-position: 0 55%;
+  background-size: 100% 88%;
+  border-radius: 2px;
+}
+.theme-space .mark-draw {
+  background-size: 0% 88%;
+}
+.theme-space .mark-draw.is-on {
+  background-size: 100% 88%;
+}
+.theme-space ::selection {
+  background: var(--color-mark);
+  color: var(--color-on-mark);
+}
+.theme-space .cesium-widget-credits {
+  opacity: 0.5;
+}
+
+/* Phones */
+@media (max-width: 767px) {
+  /* 16px stops iPhone Safari from zooming into a text box on tap */
+  .theme-space input,
+  .theme-space textarea,
+  .theme-space select {
+    font-size: 16px;
+  }
+  /* Map credits stay visible above the bottom sheet, under the header */
+  .theme-space .cesium-viewer-bottom {
+    top: calc(env(safe-area-inset-top, 0px) + 96px) !important;
+    bottom: auto !important;
+    right: 8px !important;
+  }
+  .theme-space .cesium-widget-credits {
+    font-size: 9px !important;
   }
 }

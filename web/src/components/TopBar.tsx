@@ -55,7 +55,7 @@ export function TopBar() {
       data-reveal
       data-intro="top"
       data-section
-      className="pointer-events-auto absolute inset-x-0 top-0 z-30 flex items-center gap-5 border-b border-line bg-paper/95 px-5 py-2.5"
+      className="pointer-events-auto absolute inset-x-0 top-0 z-30 flex items-center gap-3 border-b border-line bg-paper/95 px-4 py-2.5 min-[1280px]:gap-5 min-[1280px]:px-5"
     >
       <a
         href="/"
@@ -66,7 +66,7 @@ export function TopBar() {
         className="flex items-baseline gap-3"
         title="Back to the story"
       >
-        <span className="atlas whitespace-nowrap text-[26px] text-ink">Ground Truth</span>
+        <span className="atlas whitespace-nowrap text-[22px] text-ink min-[1280px]:text-[26px]">Ground Truth</span>
       </a>
 
       <div className="flex items-center gap-2">
@@ -81,7 +81,7 @@ export function TopBar() {
                   type="button"
                   onClick={() => setVariable(v.id)}
                   aria-pressed={on}
-                  className={`btn relative rounded-lg whitespace-nowrap px-3 py-1.5 text-sm ${on ? "text-accent-ink" : "btn-quiet text-muted"}`}
+                  className={`btn relative rounded-lg whitespace-nowrap px-2.5 py-1.5 text-[13px] min-[1280px]:px-3 min-[1280px]:text-sm ${on ? "text-accent-ink" : "btn-quiet text-muted"}`}
                 >
                   {on && (
                     <motion.span
@@ -130,7 +130,7 @@ export function TopBar() {
             onClick={() => setBuildings(!buildings)}
             disabled={!photorealistic}
             aria-pressed={photorealistic && buildings}
-            className={`btn whitespace-nowrap rounded-lg border px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-40 ${
+            className={`btn whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-[13px] min-[1280px]:px-3 min-[1280px]:text-sm disabled:cursor-not-allowed disabled:opacity-40 ${
               photorealistic && buildings ? "border-ink bg-ink text-paper" : "btn-quiet border-line text-muted"
             }`}
           >
@@ -145,7 +145,7 @@ export function TopBar() {
             type="button"
             onClick={() => setShowLabels(!showLabels)}
             aria-pressed={showLabels}
-            className={`btn whitespace-nowrap rounded-lg border px-3 py-1.5 text-sm ${showLabels ? "border-ink bg-ink text-paper" : "btn-quiet border-line text-muted"}`}
+            className={`btn whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-[13px] min-[1280px]:px-3 min-[1280px]:text-sm ${showLabels ? "border-ink bg-ink text-paper" : "btn-quiet border-line text-muted"}`}
           >
             Names
           </button>
@@ -155,7 +155,7 @@ export function TopBar() {
             type="button"
             onClick={toggleFires}
             aria-pressed={showFires}
-            className={`btn flex items-center gap-1.5 whitespace-nowrap rounded-lg border px-3 py-1.5 text-sm ${
+            className={`btn flex items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-[13px] min-[1280px]:px-3 min-[1280px]:text-sm ${
               showFires ? "border-fire bg-fire text-white" : "btn-quiet border-line text-ink"
             }`}
           >
@@ -166,7 +166,7 @@ export function TopBar() {
           </button>
         </Tip>
         <Tip title="How do we know?" body="How we test every trend, the checks against published science, and how we keep the AI honest." align="right">
-          <button type="button" onClick={() => setChecksOpen(true)} className="btn btn-quiet whitespace-nowrap rounded-lg border border-line px-3 py-1.5 text-sm text-ink">
+          <button type="button" onClick={() => setChecksOpen(true)} className="btn btn-quiet whitespace-nowrap rounded-lg border border-line px-2.5 py-1.5 text-[13px] min-[1280px]:px-3 min-[1280px]:text-sm text-ink">
             How we know
           </button>
         </Tip>

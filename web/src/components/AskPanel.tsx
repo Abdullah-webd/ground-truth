@@ -111,8 +111,14 @@ export function AskPanel() {
     },
     [],
   );
+  // A new question scrolls to its start; while the answer streams in, follow its end.
+  const lastTurnRef = useRef<HTMLElement>(null);
+  const turnCount = turns.length;
   useEffect(() => {
     // Braces matter: newer browsers return a Promise from scrollIntoView, which React must not receive.
+    lastTurnRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, [turnCount]);
+  useEffect(() => {
     endRef.current?.scrollIntoView({ block: "nearest" });
   }, [turns]);
 
@@ -121,6 +127,7 @@ export function AskPanel() {
   async function send(question: string) {
     const q = question.trim();
     if (!q || busy) return;
+    useApp.getState().setPanelView("ask"); // the answer is what you asked for: keep it on screen
     const id = Date.now();
     setTurns((ts) => [...ts, { id, question: q, steps: [], answer: "", done: false }]);
     setText("");
@@ -170,6 +177,7 @@ export function AskPanel() {
   }
 
   function toggleVoice() {
+    useApp.getState().setPanelView("ask");
     if (voice.current) {
       voice.current.stop();
       voice.current = null;
@@ -257,7 +265,7 @@ export function AskPanel() {
             aria-pressed={voiceState !== "closed"}
             title="Talk to the analyst (OpenAI gpt-realtime-2.1). Press again to hang up."
             className={`btn flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm ${
-              voiceState === "closed" ? "btn-quiet border-line text-ink" : "border-ink bg-mark text-ink"
+              voiceState === "closed" ? "btn-quiet border-line text-ink" : "border-ink bg-mark text-on-mark"
             }`}
           >
             <span className="relative grid h-3.5 w-3.5 place-items-center" aria-hidden>
@@ -296,8 +304,8 @@ export function AskPanel() {
       )}
 
       <div className="flex flex-col gap-4" aria-live="polite">
-        {turns.map((t) => (
-          <article key={t.id} className="flex flex-col gap-2">
+        {turns.map((t, i) => (
+          <article key={t.id} ref={i === turns.length - 1 ? lastTurnRef : undefined} className="flex scroll-mt-3 flex-col gap-2">
             <p className="self-end rounded-lg bg-panel-2 px-3 py-2 text-sm text-ink">
               {t.voice && <span className="mr-1.5 text-[11px] font-medium text-muted">You said:</span>}
               {t.question}

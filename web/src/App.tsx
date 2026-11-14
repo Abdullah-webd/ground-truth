@@ -16,6 +16,9 @@ import { GlobeSync } from "./globe/GlobeSync";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "./lib/api";
 import { useVariables } from "./lib/useVariables";
+import { useLayout } from "./lib/layout";
+import { TabletShell } from "./components/TabletShell";
+import { PhoneShell } from "./components/mobile/PhoneShell";
 
 gsap.registerPlugin(useGSAP);
 
@@ -24,6 +27,7 @@ export default function Explore() {
   const [ready, setReady] = useState(false);
   const onReady = useCallback(() => setReady(true), []);
   const variables = useVariables();
+  const layout = useLayout();
   const config = useQuery({ queryKey: ["config"], queryFn: api.config, staleTime: Infinity, retry: 2 });
   const configDone = config.isSuccess || config.isError;
   const uiReady = !!variables.data;
@@ -52,7 +56,7 @@ export default function Explore() {
   );
 
   return (
-    <div ref={root} className="app-screen bg-paper">
+    <div ref={root} className="app-screen theme-space">
       {configDone && <Globe onReady={onReady} ionToken={config.data?.cesium_ion_token ?? null} />}
       <GlobeSync ready={ready} />
       {variables.isError && (
@@ -63,12 +67,18 @@ export default function Explore() {
       {uiReady && (
         <LayoutGroup>
           <div className="pointer-events-none absolute inset-0">
-            <TopBar />
-            <InvestigatePanel />
-            <Timeline />
+            {layout === "desktop" && (
+              <>
+                <TopBar />
+                <InvestigatePanel />
+                <Timeline />
+                <CaseFile />
+                <FirePanel />
+              </>
+            )}
+            {layout === "tablet" && <TabletShell />}
+            {layout === "phone" && <PhoneShell />}
             <AtlasLabel />
-            <CaseFile />
-            <FirePanel />
             <ChecksView />
           </div>
         </LayoutGroup>

@@ -9,7 +9,7 @@ import { VARIABLE_IDS, type Fire, type PointTrend } from "../lib/types";
 import { fireSize, hoursAgo } from "../lib/fire";
 import { Flame } from "./FirePanel";
 import { useVariables } from "../lib/useVariables";
-import { useApp } from "../state/store";
+import { useApp, type Selection } from "../state/store";
 import { Briefing } from "./Briefing";
 import { SeriesChart } from "./SeriesChart";
 
@@ -18,6 +18,26 @@ const panel = {
   animate: { opacity: 1, x: 0, transition: { duration: 0.3, ease: [0.23, 1, 0.32, 1] } },
   exit: { opacity: 0, x: 16, transition: { duration: 0.18 } },
 } as const;
+
+/** The case file for whatever is selected: a place, a change hotspot, an opposite-trend pair, or a fire. */
+export function CaseContent({ selection, onClose }: { selection: NonNullable<Selection>; onClose: () => void }) {
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={onClose}
+        className="btn btn-quiet absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-md text-muted"
+        aria-label="Close the case file"
+      >
+        <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.6" /></svg>
+      </button>
+      {selection.kind === "point" && <PointCase lat={selection.lat} lon={selection.lon} name={selection.name} />}
+      {selection.kind === "hotspot" && <HotspotCase id={selection.id} />}
+      {selection.kind === "pair" && <PairCase index={selection.index} />}
+      {selection.kind === "fire" && <FireCase fire={selection.fire} />}
+    </div>
+  );
+}
 
 export function CaseFile() {
   const selection = useApp((s) => s.selection);
@@ -33,18 +53,7 @@ export function CaseFile() {
           aria-label="Case file"
           className="scroll-thin panel-shadow pointer-events-auto absolute right-4 top-[72px] bottom-4 z-20 flex w-[390px] flex-col overflow-y-auto rounded-2xl border border-line bg-panel"
         >
-          <button
-            type="button"
-            onClick={() => select(null)}
-            className="btn btn-quiet absolute right-3 top-3 z-10 grid h-8 w-8 place-items-center rounded-md text-muted"
-            aria-label="Close the case file"
-          >
-            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.6" /></svg>
-          </button>
-          {selection.kind === "point" && <PointCase lat={selection.lat} lon={selection.lon} name={selection.name} />}
-          {selection.kind === "hotspot" && <HotspotCase id={selection.id} />}
-          {selection.kind === "pair" && <PairCase index={selection.index} />}
-          {selection.kind === "fire" && <FireCase fire={selection.fire} />}
+          <CaseContent selection={selection} onClose={() => select(null)} />
         </motion.aside>
       )}
     </AnimatePresence>

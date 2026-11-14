@@ -26,7 +26,8 @@ const listItem = {
   exit: { opacity: 0, x: -10 },
 };
 
-export function InvestigatePanel() {
+/** Ask, go to a place, what the colours mean, change scans, opposite trends: the explore tools. */
+export function InvestigateContent() {
   const { variable, selection, select, announce, change, setChange, changeLoading, setChangeLoading, divergence, setDivergence } =
     useApp();
   const meta = useVariables().data?.find((v) => v.id === variable);
@@ -109,13 +110,7 @@ export function InvestigatePanel() {
   }
 
   return (
-    <aside
-      data-reveal
-      data-intro="left"
-      data-section
-      aria-label="Investigate"
-      className="scroll-thin panel-shadow pointer-events-auto absolute left-4 top-[72px] z-20 flex max-h-[calc(100%-88px)] w-[360px] flex-col gap-4 overflow-y-auto rounded-2xl border border-line bg-panel p-4"
-    >
+    <>
       <AskPanel />
 
       <form onSubmit={onSearch} className="flex flex-col gap-2 border-t border-line pt-3">
@@ -240,6 +235,21 @@ export function InvestigatePanel() {
           </ul>
         )}
       </section>
+    </>
+  );
+}
+
+/** Desktop: the explore tools in a panel on the left. */
+export function InvestigatePanel() {
+  return (
+    <aside
+      data-reveal
+      data-intro="left"
+      data-section
+      aria-label="Investigate"
+      className="scroll-thin panel-shadow pointer-events-auto absolute left-4 top-[72px] z-20 flex max-h-[calc(100%-88px)] w-[360px] flex-col gap-4 overflow-y-auto rounded-2xl border border-line bg-panel p-4"
+    >
+      <InvestigateContent />
     </aside>
   );
 }

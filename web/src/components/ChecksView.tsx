@@ -28,7 +28,7 @@ export function ChecksView() {
     <AnimatePresence>
       {open && (
         <motion.div
-          className="pointer-events-auto absolute inset-0 z-40 grid place-items-center bg-ground/80 p-6"
+          className="pointer-events-auto absolute inset-0 z-[60] grid place-items-center bg-ground/80 p-3 sm:p-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0, transition: { duration: 0.15 } }}
@@ -43,7 +43,7 @@ export function ChecksView() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.15 } }}
             transition={{ type: "spring", duration: 0.35, bounce: 0 }}
-            className="scroll-thin panel-shadow max-h-full w-full max-w-[880px] overflow-y-auto rounded-2xl border border-line bg-panel p-8"
+            className="scroll-thin panel-shadow max-h-full w-full max-w-[880px] overflow-y-auto rounded-2xl border border-line bg-panel p-5 sm:p-8"
           >
             <div className="flex items-start justify-between gap-6">
               <div>

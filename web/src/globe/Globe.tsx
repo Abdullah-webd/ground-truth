@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { initialLayout } from "../lib/layout";
 import { useApp } from "../state/store";
 import { GlobeController, globe } from "./controller";
 
@@ -10,7 +11,8 @@ export function Globe({ onReady, ionToken }: { onReady?: () => void; ionToken: s
     if (!ref.current) return;
     let controller: GlobeController;
     try {
-      controller = new GlobeController(ref.current, { ionToken });
+      controller = new GlobeController(ref.current, { ionToken, flatMap: useApp.getState().flatMap });
+      if (initialLayout() === "phone") controller.places.maxVisible = 60;
     } catch (err) {
       setError(`The 3D globe could not start: ${(err as Error).message}. Try a browser with WebGL enabled.`);
       return;

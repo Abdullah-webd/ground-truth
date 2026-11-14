@@ -4,7 +4,7 @@ import { useApp } from "../state/store";
 import { Legend } from "./Legend";
 import { PLAIN } from "../lib/plain";
 
-export function Timeline() {
+export function Timeline({ variant = "desktop", bottom }: { variant?: "desktop" | "tablet" | "phone"; bottom?: number }) {
   const { variable, mapView, setMapView, year, setYear, playing, setPlaying } = useApp();
   const caseOpen = useApp((s) => s.selection != null);
   const meta = useVariables().data?.find((v) => v.id === variable);
@@ -21,13 +21,22 @@ export function Timeline() {
   // Sit in the gap between the left panel (360px) and the case file (380px) so nothing overlaps on laptops.
   return (
     <div
-      className={`pointer-events-none absolute bottom-4 left-[392px] z-20 flex justify-center transition-[right] duration-300 ${caseOpen ? "right-[412px]" : "right-4"}`}
+      className={
+        variant === "phone"
+          ? "pointer-events-none fixed inset-x-3 z-20 flex justify-center"
+          : variant === "tablet"
+            ? "pointer-events-none absolute bottom-4 left-4 right-[412px] z-20 flex justify-center"
+            : `pointer-events-none absolute bottom-4 left-[392px] z-20 flex justify-center transition-[right] duration-300 ${caseOpen ? "right-[412px]" : "right-4"}`
+      }
+      style={variant === "phone" ? { bottom: `calc(${bottom ?? 0}px + 10px + var(--kb, 0px))` } : undefined}
     >
     <div
       data-reveal
       data-intro="bottom"
       data-section
-      className="panel-shadow pointer-events-auto flex max-w-full flex-wrap items-end justify-center gap-x-6 gap-y-3 rounded-2xl border border-line bg-panel px-5 py-3.5"
+      className={`panel-shadow pointer-events-auto flex max-w-full flex-wrap items-end justify-center gap-x-6 gap-y-3 rounded-2xl border border-line bg-panel ${
+        variant === "phone" ? "w-full px-3 py-2.5 [&_.legend-detail]:hidden" : "px-5 py-3.5"
+      }`}
     >
       <div className="flex flex-col gap-2">
         <div role="tablist" aria-label="Map view" className="flex gap-1 rounded-lg border border-line bg-ground p-1 text-sm">
@@ -47,7 +56,7 @@ export function Timeline() {
             </button>
           ))}
         </div>
-        <p className="max-w-[300px] text-xs text-muted">
+        <p className={`max-w-[300px] text-xs text-muted ${variant === "phone" ? "hidden" : ""}`}>
           {mapView === "trend"
             ? `Where ${PLAIN[variable].name.toLowerCase()} has really changed since ${y0}. Grey means no clear change.`
             : `Each year compared with the average for ${meta.legend.frames.baseline}. Press play to watch it change.`}
@@ -89,7 +98,7 @@ export function Timeline() {
               setYear(Number(e.target.value));
             }}
             aria-label="Year"
-            className="w-[220px] accent-[var(--color-ink)]"
+            className={`${variant === "phone" ? "w-[150px]" : "w-[220px]"} accent-[var(--color-ink)]`}
           />
         </motion.div>
       )}

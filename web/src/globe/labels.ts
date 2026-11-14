@@ -10,6 +10,7 @@ import {
   HorizontalOrigin,
   LabelCollection,
   LabelStyle,
+  SceneMode,
   Math as CMath,
   SceneTransforms,
   VerticalOrigin,
@@ -123,6 +124,8 @@ export class PlaceLabels {
   private tileOrder: string[] = [];
   private wanted: string[] = [];
   private enabled = true;
+  /** Fewer names at once on a small screen. */
+  maxVisible = MAX_VISIBLE;
   private dirty = true;
   private lastLayout = 0;
   private animating = false;
@@ -296,6 +299,8 @@ export class PlaceLabels {
   /** Greedy decluttering in screen space: most important names first, skip anything that would overlap. */
   private layout() {
     const { scene, camera } = this.viewer;
+    // The horizon test only applies to the globe; on the flat map everything on screen is visible.
+    const flat = scene.mode === SceneMode.SCENE2D;
     const occluder = new EllipsoidalOccluder(Ellipsoid.WGS84, camera.positionWC);
     const w = scene.canvas.clientWidth;
     const hgt = scene.canvas.clientHeight;
@@ -309,7 +314,7 @@ export class PlaceLabels {
       let visible = false;
       // Big area names fade out once you're down among the streets.
       const tooClose = (p.item.k === "country" || p.item.k === "continent" || p.item.k === "state") && height < 60_000;
-      if (!tooClose && shown < MAX_VISIBLE && occluder.isPointVisible(p.pos)) {
+      if (!tooClose && shown < this.maxVisible && (flat || occluder.isPointVisible(p.pos))) {
         const s = SceneTransforms.worldToWindowCoordinates(scene, p.pos, out);
         if (s && s.x > -40 && s.x < w + 40 && s.y > 0 && s.y < hgt) {
           const text = p.label.text;

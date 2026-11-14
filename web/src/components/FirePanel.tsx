@@ -16,7 +16,7 @@ export function Flame({ scale }: { scale: number }) {
 }
 
 /** Explains the live-fire layer while it is on: what each flame is, how many, and where the biggest one is. */
-export function FirePanel() {
+export function FirePanel({ variant = "desktop" }: { variant?: "desktop" | "tablet" | "phone" }) {
   const show = useApp((s) => s.showFires);
   const toggle = useApp((s) => s.toggleFires);
   const q = useQuery({ queryKey: ["fires"], queryFn: () => api.fires(), enabled: show, refetchInterval: 600_000 });
@@ -30,7 +30,13 @@ export function FirePanel() {
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.23, 1, 0.32, 1] } }}
           exit={{ opacity: 0, y: -8, transition: { duration: 0.18 } }}
-          className="panel-shadow pointer-events-auto absolute left-1/2 top-[72px] z-20 w-[min(520px,calc(100%-820px))] min-w-[340px] -translate-x-1/2 rounded-2xl border border-line bg-paper px-4 py-3"
+          className={
+            variant === "phone"
+              ? "panel-shadow pointer-events-auto fixed inset-x-3 top-[calc(env(safe-area-inset-top,0px)+104px)] z-20 rounded-2xl border border-line bg-paper px-3.5 py-2.5"
+              : variant === "tablet"
+                ? "panel-shadow pointer-events-auto absolute left-4 right-[412px] top-[72px] z-20 rounded-2xl border border-line bg-paper px-4 py-3"
+              : "panel-shadow pointer-events-auto absolute left-1/2 top-[72px] z-20 w-[min(520px,calc(100%-820px))] min-w-[340px] -translate-x-1/2 rounded-2xl border border-line bg-paper px-4 py-3"
+          }
         >
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -45,7 +51,7 @@ export function FirePanel() {
                   </>
                 )}
               </p>
-              <p className="mt-0.5 text-[13px] leading-snug text-muted">
+              <p className={`mt-0.5 text-[13px] leading-snug text-muted ${variant === "phone" ? "hidden" : ""}`}>
                 {q.isError
                   ? (q.error as Error).message
                   : "Each flame is one hot spot NASA's VIIRS satellite saw from space, about 375 m across. Zoom in to see the burning patch on the ground. Click a flame for details."}

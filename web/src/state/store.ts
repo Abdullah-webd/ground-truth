@@ -1,5 +1,9 @@
 import { create } from "zustand";
 import type { BBox, ChangeResult, Divergence, Fire, VariableId } from "../lib/types";
+import { initialLayout } from "../lib/layout";
+
+export type SheetSnap = "peek" | "half" | "full";
+const phone = initialLayout() === "phone";
 
 export type MapView = "trend" | "year";
 export type BaseMap = "night" | "satellite";
@@ -21,6 +25,16 @@ interface State {
   pendingAsk: { text: string; key: number } | null;
   showFires: boolean;
   showLabels: boolean;
+  /** Phones start on a flat map; the globe is one tap away. */
+  flatMap: boolean;
+  setFlatMap: (on: boolean) => void;
+  sheet: SheetSnap;
+  setSheet: (s: SheetSnap) => void;
+  layersOpen: boolean;
+  /** Time the analyst last moved the map (phones drop the sheet to peek for a moment). */
+  flightAt: number;
+  peekForFlight: () => void;
+  setLayersOpen: (on: boolean) => void;
   setShowLabels: (on: boolean) => void;
   fires: Fire[] | null;
   setFires: (f: Fire[] | null) => void;
@@ -40,6 +54,11 @@ interface State {
   clearAsk: () => void;
   toggleFires: () => void;
   select: (s: Selection) => void;
+  /** The analyst's selections keep its answer on screen (phone sheet, tablet tabs); yours open the details. */
+  selectByAnalyst: (s: Selection) => void;
+  /** Phone sheet / tablet panel: the analyst conversation or the details of the selection. */
+  panelView: "ask" | "case";
+  setPanelView: (v: "ask" | "case") => void;
   announce: (text: string) => void;
   setChange: (c: ChangeResult | null) => void;
   setChangeLoading: (b: boolean) => void;
@@ -53,10 +72,25 @@ export const useApp = create<State>((set) => ({
   year: null,
   playing: false,
   base: "satellite",
-  buildings: true,
+  buildings: !phone,
   pendingAsk: null,
   showFires: false,
   showLabels: true,
+  flatMap: phone,
+  // The flat map can't show 3D buildings, so switching to it turns them off.
+  setFlatMap: (flatMap) => set(flatMap ? { flatMap, buildings: false } : { flatMap }),
+  sheet: "peek",
+  setSheet: (sheet) => set({ sheet }),
+  layersOpen: false,
+  flightAt: 0,
+  peekForFlight: () => {
+    set({ sheet: "peek", flightAt: Date.now() });
+    window.setTimeout(() => {
+      const s = useApp.getState();
+      if (s.sheet === "peek" && Date.now() - s.flightAt >= 2900) s.setSheet("half");
+    }, 3000);
+  },
+  setLayersOpen: (layersOpen) => set({ layersOpen }),
   setShowLabels: (showLabels) => set({ showLabels }),
   fires: null,
   setFires: (fires) => set({ fires }),
@@ -71,11 +105,15 @@ export const useApp = create<State>((set) => ({
   setYear: (year) => set({ year }),
   setPlaying: (playing) => set({ playing }),
   setBase: (base) => set({ base }),
-  setBuildings: (buildings) => set({ buildings }),
-  ask: (text) => set({ pendingAsk: { text, key: Date.now() } }),
+  // Buildings need the 3D globe, so turning them on leaves the flat map.
+  setBuildings: (buildings) => set(buildings ? { buildings, flatMap: false } : { buildings }),
+  ask: (text) => set({ pendingAsk: { text, key: Date.now() }, panelView: "ask" }),
   clearAsk: () => set({ pendingAsk: null }),
   toggleFires: () => set((s) => ({ showFires: !s.showFires })),
-  select: (selection) => set({ selection }),
+  select: (selection) => set({ selection, panelView: selection ? "case" : "ask" }),
+  selectByAnalyst: (selection) => set({ selection, panelView: "ask" }),
+  panelView: "ask",
+  setPanelView: (panelView) => set({ panelView }),
   announce: (text) => set({ atlasLabel: { text, key: Date.now() } }),
   setChange: (change) => set({ change }),
   setChangeLoading: (changeLoading) => set({ changeLoading }),
