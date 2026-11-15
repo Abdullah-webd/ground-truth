@@ -44,6 +44,13 @@ make eval       # 14 analyst questions, auto-graded (uses OpenAI credit)
 make e2e        # browser walkthrough with screenshots (servers running)
 ```
 
+## Use of Super Intelligence (SI)
+
+In line with the NASA Space Apps 2026 rules:
+- **In the product:** Aisha, the analyst, runs on OpenAI models (text and realtime voice). She answers only through our tools over tested NASA data, labels every claim, and every number she states is checked against the data.
+- **Code and text:** the team used Claude (Anthropic) as a coding and writing assistant. The idea, the challenge approach and every scientific decision are the team's; all statistics come from NASA records via our own tested pipeline.
+- **Media:** the trailer's opening clips (Higgsfield, Seedance 2.5) carry a visible "SI-generated" watermark; its music (ElevenLabs Music via Higgsfield) and narration (OpenAI text-to-speech) are disclosed on the end card and in the video file's metadata. App footage in the trailer is real screen recording. No SI-generated content uses NASA branding.
+
 ## Credits and licences
 
 - **NASA data:** GISTEMP v4 (GISS), MODIS Terra MOD13C1 (LP DAAC), GPM IMERG V07 and GLDAS-2.2 (GES DISC), GRACE/GRACE-FO JPL mascons, FIRMS VIIRS, NASA POWER, GIBS (Black Marble, Blue Marble).
