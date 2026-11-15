@@ -71,7 +71,7 @@ export function TopBar() {
       </a>
 
       <div className="flex items-center gap-2">
-        <span className="hidden text-xs font-medium text-muted min-[1280px]:inline">The globe shows</span>
+        <span className="hidden whitespace-nowrap text-xs font-medium text-muted min-[1536px]:inline">The globe shows</span>
         <nav aria-label="What the globe shows" className="flex items-center gap-1 rounded-xl border border-line bg-ground p-1">
           {variables.map((v) => {
             const plain = PLAIN[v.id];
@@ -121,7 +121,9 @@ export function TopBar() {
         <Tip
           title="3D buildings"
           body={
-            photorealistic
+            isLite()
+              ? "Off in Lite mode, to save data. Turn Lite off to see 3D cities."
+              : photorealistic
               ? "When you zoom close to a city, real 3D buildings appear. To tilt the view, hold Ctrl and drag, or drag with the right mouse button."
               : "Needs a Cesium ion token in .env."
           }
@@ -129,10 +131,10 @@ export function TopBar() {
           <button
             type="button"
             onClick={() => setBuildings(!buildings)}
-            disabled={!photorealistic}
-            aria-pressed={photorealistic && buildings}
+            disabled={!photorealistic || isLite()}
+            aria-pressed={photorealistic && !isLite() && buildings}
             className={`btn whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-[13px] min-[1280px]:px-3 min-[1280px]:text-sm disabled:cursor-not-allowed disabled:opacity-40 ${
-              photorealistic && buildings ? "border-ink bg-ink text-paper" : "btn-quiet border-line text-muted"
+              photorealistic && !isLite() && buildings ? "border-ink bg-ink text-paper" : "btn-quiet border-line text-muted"
             }`}
           >
             3D buildings
