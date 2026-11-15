@@ -184,7 +184,7 @@ export default function Methods() {
           <div className="grid gap-3 md:grid-cols-3">
             {[
               ["Observed change", "bg-panel-2", "Something satellites really recorded (this month's weather, land that turned into buildings, a fire). Real, but not a tested long-term trend."],
-              ["Proven trend", "bg-mark text-on-mark", "A long-term change that passed our significance test at 95 % confidence, corrected for testing the whole map. Reported with its size and a 95 % range."],
+              ["Confirmed trend", "bg-mark text-on-mark", "A long-term change that passed our significance test at 95 % confidence, corrected for testing the whole map. Reported with its size and a 95 % range."],
               ["Possible explanation", "border border-dashed border-line", "A plausible reason why. Never established by our data, and always labelled as untested."],
             ].map(([t, cls, d]) => (
               <div key={t} className="rounded-xl border border-line p-4">
@@ -234,7 +234,7 @@ export default function Methods() {
         <Section id="test" title="How a trend is tested">
           <p>
             <strong>In plain words:</strong> we ask how often pure luck would produce a pattern this steady. If it's rarer than 1 time in 20, even after
-            allowing for the fact that one year tends to resemble the next and that we test thousands of places at once, we call it <span className="mark">proven</span>.
+            allowing for the fact that one year tends to resemble the next and that we test thousands of places at once, we call it <span className="mark">confirmed</span>.
           </p>
           <ol className="flex list-decimal flex-col gap-2 pl-5 text-[15px]">
             <li>
@@ -255,7 +255,7 @@ export default function Methods() {
             </li>
             <li>
               <strong>The whole map:</strong> testing thousands of places at once guarantees some flukes, so p-values are adjusted with the Benjamini-Hochberg
-              false discovery rate (Wilks 2016). "Proven" means adjusted q &lt; 0.05.
+              false discovery rate (Wilks 2016). "Confirmed" means adjusted q &lt; 0.05.
             </li>
           </ol>
         </Section>
@@ -271,7 +271,7 @@ export default function Methods() {
               </p>
             </div>
             <div className="rounded-xl border border-line p-4">
-              <p className="text-sm font-semibold text-muted">Against published science</p>
+              <p className="text-sm font-semibold text-muted">Against published science (spot-checks of well-known results, not a full validation)</p>
               <ul className="mt-1 flex flex-col gap-1 text-[15px]">
                 {(c?.regional ?? []).slice(0, 6).map((r: { title: string; passed: boolean | null }) => (
                   <li key={r.title} className="flex items-start gap-2">
@@ -301,7 +301,7 @@ export default function Methods() {
                 {c?.agent_eval ? `${c.agent_eval.total} questions (${c.agent_eval.passed} passed)` : "20 questions"}, including honesty about
                 significance and never claiming a cause.
               </li>
-              <li>She labels every claim as observed, proven or not proven, and marks possible explanations as untested.</li>
+              <li>She labels every claim as observed, confirmed or not confirmed yet, and marks possible explanations as untested.</li>
               <li>Voice uses the same tools and the same checks as text (OpenAI gpt-realtime).</li>
             </ul>
           </div>
@@ -310,11 +310,24 @@ export default function Methods() {
         <Section id="limits" title="What we can't tell (yet)">
           <ul className="flex list-disc flex-col gap-2 pl-5 text-[15px]">
             <li>Grid squares are 55–220 km; GRACE's water footprint is about 300 km. A finding describes the area, not one farm or street.</li>
-            <li>Records are 21–46 years long. Some real trends need longer records to be proven; "not proven" is not "no change".</li>
+            <li>
+              Temperature (GISTEMP) is built from weather stations and ocean measurements, smoothed over about 1,200 km and stored on a 2° grid (about 220 km),
+              which we resample to share the 0.5° grid of the other layers. Where stations are few, as in much of West Africa, values are largely interpolated.
+              Rainfall and greenness are 0.5° (about 55 km), so comparing them for one city is not like-for-like.
+            </li>
+            <li>
+              At a city, a 55 km grid square mixes town, water and countryside. Lagos "getting browner" most likely reflects land turning into buildings, not
+              drought or dying plants: the trend tells us what changed, not why.
+            </li>
+            <li>
+              Water and groundwater gains in the Sahel and northern Nigeria are a known pattern in GRACE-based data that scientists still debate; the data is
+              very coarse, so treat them as regional and uncertain, especially next to drying claims.
+            </li>
+            <li>Records are 21–46 years long. Some real trends need longer records to be confirmed; "not confirmed" is not "no change".</li>
             <li>GRACE measures all water in the land together. Our groundwater layer is a model estimate (NASA GLDAS-2.2, constrained by GRACE), not a measurement of individual wells.</li>
             <li>
               GLDAS groundwater changes are often smaller than GRACE-only estimates (north-west India: −46 vs −267 mm per decade of total water), because the
-              model assigns part of the change to soil moisture. Rely on the direction and the proven verdict more than the exact size.
+              model assigns part of the change to soil moisture. Rely on the direction and the confirmed verdict more than the exact size.
             </li>
             <li>On short, strongly persistent records, false alarms can reach about 8 %.</li>
             <li>We show what changed and how surely, never why: causes need further science.</li>
@@ -325,7 +338,7 @@ export default function Methods() {
         <Section id="africa" title="Built for Africa, open to the world">
           <p>
             Most climate platforms speak to specialists. Ground Truth speaks to the people living with the change, starting in Nigeria and across Africa: a
-            farmer asking whether the rains are failing, a student checking a claim, a journalist verifying a story, a policymaker looking for proven trends by
+            farmer asking whether the rains are failing, a student checking a claim, a journalist verifying a story, a policymaker looking for confirmed trends by
             place, a researcher who wants the numbers and the method.
           </p>
           <div className="overflow-x-auto rounded-xl border border-line">
@@ -377,6 +390,40 @@ export default function Methods() {
             <li>More records: soil moisture, evapotranspiration, air quality.</li>
             <li>Partnerships with African institutions (for example NiMet and Digital Earth Africa).</li>
           </ul>
+        </Section>
+
+        <Section id="credits" title="Credits and licences">
+          <div className="grid gap-4 text-[14px] md:grid-cols-2">
+            <div>
+              <p className="font-semibold text-ink">NASA data (public)</p>
+              <p className="text-muted">
+                GISTEMP v4 (NASA GISS), MODIS Terra MOD13C1 (LP DAAC), GPM IMERG V07 and GLDAS-2.2 (GES DISC), GRACE / GRACE-FO JPL mascons, FIRMS VIIRS
+                active fires, NASA POWER, and GIBS (VIIRS Black Marble night lights).
+              </p>
+            </div>
+            <div>
+              <p className="font-semibold text-ink">Other data and services</p>
+              <p className="text-muted">
+                Google Earth Engine (non-commercial and research use); Google DeepMind AlphaEarth Satellite Embedding and Dynamic World (CC BY 4.0);
+                place names © OpenStreetMap contributors (ODbL), served by OpenFreeMap; place search by Nominatim (OpenStreetMap); Lite-mode imagery Sentinel-2
+                cloudless by EOX (CC BY-NC-SA 4.0, contains modified Copernicus Sentinel data).
+              </p>
+            </div>
+            <div>
+              <p className="font-semibold text-ink">Maps and 3D</p>
+              <p className="text-muted">
+                CesiumJS (Apache 2.0). Terrain, aerial imagery (Bing Maps via Cesium ion) and 3D buildings come from Cesium ion's free tier for non-commercial use,
+                which is why the map shows "Upgrade for commercial use". A commercial launch would need a paid Cesium plan or open alternatives.
+              </p>
+            </div>
+            <div>
+              <p className="font-semibold text-ink">AI and software</p>
+              <p className="text-muted">
+                Aisha uses OpenAI models (text and realtime voice). Built with React, TypeScript, GSAP, Motion, Lenis, TanStack Query, Zustand, Python, FastAPI,
+                NumPy, SciPy, pyMannKendall, xarray and the Earth Engine API. Fonts: Barlow Condensed and Public Sans (SIL Open Font Licence). Hosted on Railway.
+              </p>
+            </div>
+          </div>
         </Section>
 
         <Section id="refs" title="References">

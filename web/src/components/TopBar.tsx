@@ -1,3 +1,4 @@
+import { isLite, setLite } from "../lib/lite";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import { useState, type ReactNode } from "react";
@@ -76,7 +77,7 @@ export function TopBar() {
             const plain = PLAIN[v.id];
             const on = variable === v.id;
             return (
-              <Tip key={v.id} title={plain.question} body={`${plain.what} Coloured where the change is proven.`}>
+              <Tip key={v.id} title={plain.question} body={`${plain.what} Coloured where the change is confirmed.`}>
                 <button
                   type="button"
                   onClick={() => setVariable(v.id)}
@@ -163,6 +164,16 @@ export function TopBar() {
               <path d="M5.5 0C6 3 9.5 4.5 9.5 8.2A4 4 0 0 1 1.5 8.2C1.5 6.4 2.6 5.3 3.3 4.6c.1 1.3.8 2 1.5 2.3C4.4 4.6 4.8 2 5.5 0z" fill="currentColor" />
             </svg>
             Fires now
+          </button>
+        </Tip>
+        <Tip title="Lite mode" body="For slow or costly connections: a smooth Earth, lighter maps and no 3D buildings. Turns on by itself when your connection looks slow. Reloads the map." align="right">
+          <button
+            type="button"
+            onClick={() => setLite(!isLite())}
+            aria-pressed={isLite()}
+            className={`btn whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-[13px] min-[1280px]:px-3 min-[1280px]:text-sm ${isLite() ? "border-ink bg-ink text-paper" : "btn-quiet border-line text-ink"}`}
+          >
+            Lite
           </button>
         </Tip>
         <Tip title="How do we know?" body="Every dataset and its source, how we test each trend, the checks against published science, how Aisha stays honest, and what we can't tell." align="right">

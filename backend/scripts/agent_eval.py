@@ -80,8 +80,8 @@ def run_case(case: dict) -> dict:
     if case.get("no_lecture"):
         checks["no_lecture"] = len(LECTURE.findall(answer)) == 0
     if case.get("labelled"):
-        # Evidence-first answers label their claims (Proven / Not proven yet / Observed).
-        checks["labelled_claims"] = bool(re.search(r"\*\*(Proven|Not proven yet|Observed)", answer))
+        # Evidence-first answers label their claims (Confirmed trend / Not confirmed yet / Observed).
+        checks["labelled_claims"] = bool(re.search(r"\*\*(Confirmed trend|Not confirmed yet|Observed)", answer))
     if "says" in case:
         checks["right_conclusion"] = bool(re.search(case["says"], answer, re.IGNORECASE))
     checks["numbers_from_tools"] = bool(done) and not done["unverified_numbers"]

@@ -69,11 +69,14 @@ export interface GlobeOptions {
   ionToken?: string | null;
   /** Start as a flat map (phones): fills a tall narrow screen the way map apps do. */
   flatMap?: boolean;
+  /** Lite mode for slow connections: no 3D terrain or buildings, fewer and lighter tiles. */
+  lite?: boolean;
 }
 
 export class GlobeController {
   readonly viewer: Viewer;
   readonly photorealistic: boolean;
+  readonly lite: boolean;
   private night: ImageryLayer;
   private satellite: ImageryLayer;
   readonly places: PlaceLabels;
@@ -96,7 +99,8 @@ export class GlobeController {
   private pickHandlers = new Set<PickHandler>();
 
   constructor(container: HTMLElement, options: GlobeOptions = {}) {
-    this.photorealistic = !!options.ionToken;
+    this.lite = !!options.lite;
+    this.photorealistic = !!options.ionToken && !this.lite;
     Ion.defaultAccessToken = options.ionToken ?? "";
     // Cesium World Terrain via ion. If it can't be downloaded (venue Wi-Fi, DNS), fall back to a smooth
     // Earth so the globe still shows: without this the whole globe disappears.
@@ -137,6 +141,15 @@ export class GlobeController {
     scene.fog.enabled = this.photorealistic;
     scene.screenSpaceCameraController.minimumZoomDistance = this.photorealistic ? 40 : 400;
     scene.screenSpaceCameraController.maximumZoomDistance = 4.5e7;
+    if (this.lite) {
+      // Fewer, coarser tiles and a lower render resolution: much less data and GPU work on a slow phone.
+      scene.globe.maximumScreenSpaceError = 4;
+      scene.globe.tileCacheSize = 50;
+      scene.globe.preloadSiblings = false;
+      scene.globe.showGroundAtmosphere = false;
+      if (scene.skyBox) scene.skyBox.show = false;
+      this.viewer.resolutionScale = Math.min(1, 1 / (window.devicePixelRatio || 1) + 0.25);
+    }
 
     const layers = this.viewer.imageryLayers;
     this.night = layers.addImageryProvider(gibs("VIIRS_Black_Marble", "2016-01-01", "GoogleMapsCompatible_Level8", "png", 8));

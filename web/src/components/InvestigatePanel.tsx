@@ -61,7 +61,7 @@ export function InvestigateContent() {
       // Hand the place to the analyst so the full investigation appears in this panel.
       useApp
         .getState()
-        .ask(`Brief me on ${shortPlace(place.name)}: what has changed on the ground since 2018, and which long-term changes are proven by NASA records? What does it mean for people living there?`);
+        .ask(`Brief me on ${shortPlace(place.name)}: what has changed on the ground since 2018, and which long-term changes are confirmed by NASA records? What does it mean for people living there?`);
       setQuery("");
     } catch (err) {
       setError(err instanceof ApiError && err.code === "place_not_found" ? `No place called "${q}" was found. Try adding the country.` : (err as Error).message);
@@ -154,12 +154,12 @@ export function InvestigateContent() {
           <p className="text-sm font-semibold text-ink">What the colours on the globe mean</p>
           <p className="mt-1 text-sm leading-snug text-muted">
             You're looking at <strong className="font-semibold text-ink">{PLAIN[variable].name.toLowerCase()}</strong> since {meta.years[0]}:{" "}
-            {PLAIN[variable].question.toLowerCase()} Coloured places have a <span className="mark text-ink">proven</span> trend; grey means no
+            {PLAIN[variable].question.toLowerCase()} Coloured places have a <span className="mark text-ink">confirmed</span> trend; grey means no
             clear change.
           </p>
           <p className="mt-1.5 text-sm leading-snug text-muted">
             <span className="tabular font-semibold text-ink">{Math.round(meta.summary.share_area_significant_increase * 100)}%</span> of the area
-            tested is proven to be {PLAIN[variable].up},{" "}
+            tested is confirmed to be {PLAIN[variable].up},{" "}
             <span className="tabular font-semibold text-ink">{Math.round(meta.summary.share_area_significant_decrease * 100)}%</span> is{" "}
             {PLAIN[variable].down}.
           </p>
@@ -226,7 +226,7 @@ export function InvestigateContent() {
       <section className="flex flex-col gap-2 border-t border-line pt-3">
         <p className="text-sm font-semibold text-ink">Find opposite trends</p>
         <p className="text-sm leading-snug text-muted">
-          The same climate can push one region {PLAIN[variable].up} and another {PLAIN[variable].down}. This finds the biggest proven pairs on Earth.
+          The same climate can push one region {PLAIN[variable].up} and another {PLAIN[variable].down}. This finds the biggest confirmed pairs on Earth.
         </p>
         <button type="button" onClick={onDivergence} disabled={divLoading} className="btn btn-quiet self-start rounded-md border border-line px-3 py-1.5 text-sm text-ink">
           {divLoading ? "Searching…" : "Find opposite trends"}

@@ -136,7 +136,8 @@ def write_outputs(var: Variable, years: np.ndarray, cube: np.ndarray, tr: dict) 
         render.write_webp(render.frame(anomalies[k], frame_limit, var.palette), out / "frames" / f"{year}.webp",
                           size=render.FRAME_SIZE)
 
-    sig_limit = render.symmetric_limit(tr["slope_decade"][tr["significant"]], pct=90)
+    from .recolor import africa_limit  # colour range set by Africa's confirmed cells (see recolor.py)
+    sig_limit = africa_limit(var, tr)
     render.write_webp(render.significance(tr["slope_decade"], tr["tested"], tr["significant"], sig_limit,
                                           var.palette), out / "significance.webp")
 

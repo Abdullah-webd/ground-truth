@@ -96,8 +96,26 @@ export function fmtNum(v: number | null | undefined, digits?: number): string {
 
 /** The four tiers every claim is labelled with. */
 export const TIER: Record<string, { text: string; cls: string; hint: string }> = {
-  proven: { text: "Proven trend", cls: "bg-mark text-on-mark", hint: "Passed the significance test at 95 % confidence, corrected for testing the whole map." },
-  not_proven: { text: "Not proven yet", cls: "border border-line text-muted", hint: "The year-to-year ups and downs are bigger than the change, so it could be natural variation." },
+  proven: { text: "Confirmed trend", cls: "bg-mark text-on-mark", hint: "Passed the significance test at 95 % confidence, corrected for testing the whole map." },
+  not_proven: { text: "Not confirmed yet", cls: "border border-line text-muted", hint: "The year-to-year ups and downs are bigger than the change, so it could be natural variation." },
   no_data: { text: "No data here", cls: "border border-line text-faint", hint: "This record doesn't cover this spot." },
   observed: { text: "Observed", cls: "bg-panel-2 text-ink", hint: "Really recorded by satellites, but not a tested long-term trend." },
 };
+
+const latTag = (v: number) => `${Math.abs(v).toFixed(2)}${v >= 0 ? "N" : "S"}`;
+const lonTag = (v: number) => `${Math.abs(v).toFixed(2)}${v >= 0 ? "E" : "W"}`;
+const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+/** A CSV filename that says what and where, e.g. ground-truth_temperature_abuja_9.07N_7.40E_1980-2025.csv */
+export function csvName(
+  variable: string,
+  where: { name?: string; lat?: number; lon?: number; bbox?: [number, number, number, number] | null } | null,
+  period?: [number, number],
+) {
+  const parts = ["ground-truth", variable];
+  if (where?.name) parts.push(slug(where.name));
+  if (where?.lat != null && where?.lon != null) parts.push(`${latTag(where.lat)}_${lonTag(where.lon)}`);
+  else if (where?.bbox) parts.push(`region_${latTag(where.bbox[1])}-${latTag(where.bbox[3])}_${lonTag(where.bbox[0])}-${lonTag(where.bbox[2])}`);
+  if (period) parts.push(period.join("-"));
+  return parts.join("_") + ".csv";
+}

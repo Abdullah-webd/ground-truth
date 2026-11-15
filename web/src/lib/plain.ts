@@ -20,7 +20,7 @@ export const PLAIN: Record<VariableId, PlainVariable> = {
   temperature: {
     name: "Temperature",
     question: "Is it getting hotter?",
-    what: "How warm the air near the ground is over a whole year, from thousands of weather stations and ships combined by NASA.",
+    what: "How warm the air near the ground is over a whole year, from thousands of weather stations and ships combined by NASA. Each grid square is about 220 km, and where stations are few (much of West Africa) values are largely filled in from neighbours.",
     satellite: "NASA GISTEMP",
     up: "getting hotter",
     down: "getting cooler",
@@ -30,7 +30,7 @@ export const PLAIN: Record<VariableId, PlainVariable> = {
   vegetation: {
     name: "Plant growth",
     question: "Are plants getting greener?",
-    what: "How green and leafy the land looks from space. Bare desert is near 0, thick forest is near 0.9.",
+    what: "How green and leafy the land looks from space. Bare desert is near 0, thick forest is near 0.9. Each grid square is about 55 km, so at a city it mixes town, water and countryside: it shows what changed, not why.",
     satellite: "NASA MODIS satellite",
     up: "getting greener",
     down: "getting browner",
@@ -40,7 +40,7 @@ export const PLAIN: Record<VariableId, PlainVariable> = {
   rainfall: {
     name: "Rainfall",
     question: "Is it raining more or less?",
-    what: "How much rain and snow falls in a year, measured by NASA's GPM rain satellites.",
+    what: "How much rain and snow falls in a year, measured by NASA's GPM rain satellites. Each grid square is about 55 km.",
     satellite: "NASA GPM satellites",
     up: "getting wetter",
     down: "getting drier",
@@ -60,7 +60,7 @@ export const PLAIN: Record<VariableId, PlainVariable> = {
   groundwater: {
     name: "Groundwater",
     question: "Is the groundwater going down?",
-    what: "Water held underground in soil and rock, the water that wells and boreholes draw on. NASA's GLDAS model separates it from soil moisture, snow and rivers, and is kept in line with GRACE's gravity measurements. Its grid is about 28 km, but it can't be sharper than GRACE's roughly 300 km view.",
+    what: "Water held underground in soil and rock, the water that wells and boreholes draw on. NASA's GLDAS model separates it from soil moisture, snow and rivers, and is kept in line with GRACE's gravity measurements. Its grid is about 28 km, but it can't be sharper than GRACE's roughly 300 km view. Gains in the Sahel and northern Nigeria are a known pattern that scientists still debate.",
     satellite: "NASA GLDAS (with GRACE)",
     up: "gaining groundwater",
     down: "losing groundwater",
@@ -143,7 +143,7 @@ export function explain(id: VariableId, t: PointTrend): PlainFinding {
   return {
     id,
     status: "unproven",
-    headline: `Maybe ${dir}, not proven`,
+    headline: `Maybe ${dir}, not confirmed yet`,
     detail: `${size.replace(/\.$/, "")}, but the ups and downs from year to year are bigger than that, so we can't call it a real trend yet.`,
     luck: chance(t.q),
   };
@@ -154,7 +154,7 @@ export function headline(findings: PlainFinding[]): string {
   const tested = findings.filter((f) => f.status !== "nodata");
   const proven = tested.filter((f) => f.status === "proven");
   if (!tested.length) return "NASA's records don't cover this spot well enough to test.";
-  if (!proven.length) return `No lasting change is proven here in any of the ${tested.length} NASA records we checked.`;
+  if (!proven.length) return `No lasting change is confirmed here in any of the ${tested.length} NASA records we checked.`;
   if (proven.length === tested.length) return `All ${tested.length} NASA records we checked show real, lasting change here.`;
   return `${proven.length} of the ${tested.length} NASA records we checked show real, lasting change here.`;
 }

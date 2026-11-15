@@ -3,8 +3,8 @@ import { explain, headline, PLAIN, type PlainFinding } from "../lib/plain";
 import { VARIABLE_IDS, type PointTrend, type VariableId } from "../lib/types";
 
 const BADGE: Record<PlainFinding["status"], { text: string; cls: string }> = {
-  proven: { text: "Proven", cls: "bg-mark text-on-mark" },
-  unproven: { text: "Not proven", cls: "bg-panel-2 text-muted" },
+  proven: { text: "Confirmed trend", cls: "bg-mark text-on-mark" },
+  unproven: { text: "Not confirmed yet", cls: "bg-panel-2 text-muted" },
   nodata: { text: "No data", cls: "bg-panel-2 text-faint" },
 };
 

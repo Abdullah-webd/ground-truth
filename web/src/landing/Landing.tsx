@@ -336,7 +336,7 @@ export default function Landing() {
             <div className="hero-meta mt-8 flex max-w-[540px] flex-col gap-6">
               <p className="text-[19px] leading-relaxed text-muted">
                 An evidence-based Earth observation platform, <strong className="font-semibold text-ink">built for Africa</strong> and open to the whole planet.
-                Ask Aisha, our AI analyst, about any place. She checks up to 45 years of NASA satellite records and shows you the evidence: what's proven,
+                Ask Aisha, our AI analyst, about any place. She checks up to 45 years of NASA records and shows you the evidence: what's confirmed,
                 what's only observed, and what's still uncertain.
               </p>
               <div className="flex flex-wrap items-center gap-5">
@@ -351,11 +351,11 @@ export default function Landing() {
             <SpinningEarth
               overlay={t ? overlayUrl("temperature", built) : null}
               spinRef={spin}
-              label="NASA Blue Marble Earth with places of proven warming since 1980 in red"
+              label="NASA Blue Marble Earth with places of confirmed warming since 1980 in red"
               className="aspect-square w-full drop-shadow-[0_40px_60px_rgba(47,109,181,0.18)]"
             />
             <p className="atlas absolute bottom-[12%] left-[6%] text-[15px] tracking-[0.06em] text-muted max-md:hidden">
-              Red = proven warming since 1980. Drag to turn.
+              Red = confirmed warming since 1980. Drag to turn.
             </p>
           </div>
         </section>
@@ -390,7 +390,7 @@ export default function Landing() {
                   <span className="mb-1 block text-sm font-semibold text-muted">The test</span>
                   The Mann-Kendall test asks how often pure luck would make a pattern this strong. Here it's{" "}
                   <strong className="font-semibold">{w ? chance(w.q) : "…"}</strong>. That's rare enough to call it{" "}
-                  <span className="proof-mark mark mark-draw font-semibold">proven</span>.
+                  <span className="proof-mark mark mark-draw font-semibold">confirmed</span>.
                 </li>
               </ol>
             </div>
@@ -425,7 +425,7 @@ export default function Landing() {
             </h2>
             <p data-reveal className="mt-5 max-w-[700px] text-[19px] leading-relaxed text-muted">
               Real questions people ask about their part of Africa, checked against decades of NASA records with the same test the app uses. Some changes
-              are proven. Some popular stories aren't, yet. Swipe through, then ask Aisha about any of them.
+              are confirmed. Some popular stories aren't, yet. Swipe through, then ask Aisha about any of them.
             </p>
             <div className="mt-10">
               <AfricaCases />
@@ -463,7 +463,7 @@ export default function Landing() {
                   title: "Test it against decades of NASA records",
                   body: "Temperature, plant growth, rainfall and water in the land get a statistical test. You see a chart, the size of the change with its 95 % range, and the chance it's just luck.",
                   img: "/landing/step-prove.webp",
-                  alt: "The case file showing proven warming with a year-by-year chart",
+                  alt: "The case file showing confirmed warming with a year-by-year chart",
                 },
               ].map((c, i) => (
                 <article
@@ -505,7 +505,7 @@ export default function Landing() {
                       {m && (
                         <p className="mt-4 text-[17px]">
                           <span className="mark mark-draw font-semibold">
-                            {Math.round(m.summary.share_area_significant_increase * 100)}% of {m.land_only ? "land" : "the planet"} is proven {p.up}
+                            {Math.round(m.summary.share_area_significant_increase * 100)}% of {m.land_only ? "land" : "the planet"} is confirmed {p.up}
                           </span>{" "}
                           <span className="text-muted">
                             and {Math.round(m.summary.share_area_significant_decrease * 100)}% {p.down}, since {m.years[0]}.
@@ -524,11 +524,11 @@ export default function Landing() {
                   overlay={meta(question) ? overlayUrl(question, meta(question)!.built) : null}
                   spinRef={spin}
                   startLon={20}
-                  label={`Globe showing where ${PLAIN[question].name.toLowerCase()} has a proven trend`}
+                  label={`Globe showing where ${PLAIN[question].name.toLowerCase()} has a confirmed trend`}
                   className="aspect-square w-full max-w-[560px] drop-shadow-[0_30px_50px_rgba(17,24,31,0.14)]"
                 />
                 <p className="text-center text-sm text-muted">
-                  Showing: <strong className="font-semibold text-ink">{PLAIN[question].name}</strong>. Coloured only where the change is proven.
+                  Showing: <strong className="font-semibold text-ink">{PLAIN[question].name}</strong>. Coloured only where the change is confirmed.
                 </p>
               </div>
             </div>
@@ -551,7 +551,7 @@ export default function Landing() {
               </h2>
               <p data-reveal className="mt-5 text-[19px] leading-relaxed text-muted">
                 Talk or type in your own words. Aisha looks things up in NASA's records, flies the map to the place, and answers with the evidence: every
-                claim labelled as proven, not proven yet, or observed, with the source, the years and the data you can download. Every number is checked, so she
+                claim labelled as confirmed, not confirmed yet, or observed, with the source, the years and the data you can download. Every number is checked, so she
                 can't make figures up.
               </p>
               {example && (

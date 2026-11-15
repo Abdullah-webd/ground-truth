@@ -318,8 +318,11 @@ export class PlaceLabels {
         const s = SceneTransforms.worldToWindowCoordinates(scene, p.pos, out);
         if (s && s.x > -40 && s.x < w + 40 && s.y > 0 && s.y < hgt) {
           const text = p.label.text;
-          const bw = text.length * p.size * 0.58 + 10;
-          const bh = p.size + 8;
+          // Bold capitals run wider than mixed case; phones get extra breathing room so names never touch.
+          const narrow = w < 768;
+          const upper = text === text.toUpperCase();
+          const bw = text.length * p.size * (upper ? 0.7 : 0.6) + (narrow ? 24 : 12);
+          const bh = p.size + (narrow ? 14 : 8);
           const box: [number, number, number, number] = [s.x - bw / 2, s.y - bh / 2, s.x + bw / 2, s.y + bh / 2];
           const x0 = Math.floor(box[0] / cell);
           const x1 = Math.floor(box[2] / cell);

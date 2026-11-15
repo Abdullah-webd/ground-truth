@@ -6,7 +6,7 @@ import { exportCaseCard } from "../lib/exportCard";
 import { formatLatLon, formatP, formatRate, shortPlace } from "../lib/format";
 import { certainty, chance, explain, nowSentence, PLAIN } from "../lib/plain";
 import { VARIABLE_IDS, type Fire, type PointTrend, type VariableId } from "../lib/types";
-import { downloadText, evidenceCsv, fmtNum } from "../lib/evidence";
+import { csvName, downloadText, evidenceCsv, fmtNum } from "../lib/evidence";
 import { navigate } from "../lib/router";
 import { fireSize, hoursAgo } from "../lib/fire";
 import { Flame } from "./FirePanel";
@@ -117,15 +117,15 @@ function Sureness({ t }: { t: PointTrend }) {
         <p className="tabular mt-2 text-[13px] leading-snug text-ink">
           The rate is {formatRate(t.slope_per_decade, t.units)}, and is <strong className="font-semibold">likely between {fmtNum(t.slope_ci_per_decade[0])} and{" "}
           {fmtNum(t.slope_ci_per_decade[1])} {t.units}</strong> per decade (95 % range).
-          {t.significant ? " The whole range is on one side of zero, which is why it counts as proven." : " The range includes zero, so it could be no change at all."}
+          {t.significant ? " The whole range is on one side of zero, which is why it counts as confirmed." : " The range includes zero, so it could be no change at all."}
         </p>
       )}
     </div>
   );
 }
 
-/** Where the numbers come from, what "proven" means here, what we can't tell, and the data itself. */
-function EvidenceNotes({ t, variable, lat, lon }: { t: PointTrend; variable: VariableId; lat: number; lon: number }) {
+/** Where the numbers come from, what "confirmed" means here, what we can't tell, and the data itself. */
+function EvidenceNotes({ t, variable, lat, lon, name }: { t: PointTrend; variable: VariableId; lat: number; lon: number; name?: string }) {
   const src = SOURCE[variable];
   const km = Math.round(t.cell.size_deg * 111);
   const uncertain = [
@@ -134,12 +134,21 @@ function EvidenceNotes({ t, variable, lat, lon }: { t: PointTrend; variable: Var
       : variable === "groundwater"
         ? "Groundwater here is a NASA model estimate (GLDAS) kept in line with GRACE, so it can't be sharper than about 300 km and isn't a measurement of one well."
       : `This is the average for a grid square about ${km} km across, not one street or farm.`,
-    `The record covers ${t.period[0]}–${t.period[1]}. A longer record could prove (or rule out) a trend that isn't clear yet.`,
-    "This shows what changed and how surely. It does not prove why.",
+    ...(variable === "temperature"
+      ? ["Temperature comes from weather stations and ships, smoothed over about 1200 km. Where stations are few (much of West Africa) this value is largely filled in from neighbours. Its grid (about 220 km) is coarser than rainfall and greenness (about 55 km), so they aren't like-for-like for one city."]
+      : []),
+    ...(variable === "vegetation"
+      ? ["At a city the grid square mixes town, water and countryside. Browning there often means land turning into buildings, not drought or dying plants."]
+      : []),
+    ...(variable === "groundwater" || variable === "water"
+      ? ["Gains in the Sahel and northern Nigeria are a known pattern in this coarse data that scientists still debate."]
+      : []),
+    `The record covers ${t.period[0]}–${t.period[1]}. "Not confirmed" doesn't mean "no change": a longer record could confirm (or rule out) a trend that isn't clear yet.`,
+    "This shows what changed and how surely. It does not show why.",
   ];
   const download = () =>
     downloadText(
-      `ground-truth-${variable}-${lat.toFixed(2)}_${lon.toFixed(2)}.csv`,
+      csvName(variable, { name: name ? shortPlace(name) : undefined, lat, lon }, t.period),
       evidenceCsv({
         kind: "trend",
         tier: t.significant ? "proven" : t.tested ? "not_proven" : "no_data",
@@ -174,7 +183,7 @@ function EvidenceNotes({ t, variable, lat, lon }: { t: PointTrend; variable: Var
         , yearly values {t.period[0]}–{t.period[1]}.
       </p>
       <p className="text-muted">
-        <strong className="font-semibold text-ink">"Proven"</strong> means the trend passed a statistical test at 95 % confidence, after correcting for
+        <strong className="font-semibold text-ink">"Confirmed"</strong> means the trend passed a statistical test at 95 % confidence, after correcting for
         testing thousands of places at once and for one year resembling the next.
       </p>
       <p className="mt-1 text-xs font-semibold text-muted">What we can't tell</p>
@@ -257,11 +266,11 @@ function PointCase({ lat, lon, name }: { lat: number; lon: number; name?: string
               <div className="rounded-lg border border-line px-3 pb-2 pt-3">
                 <SeriesChart years={t.years} values={t.values} trendLine={t.trend_line} units={t.units} significant={t.significant} label={plain.name} />
                 <p className="mt-1 text-[11px] leading-snug text-faint">
-                  Each dot is one year. The {t.significant ? "dark" : "dashed"} line shows the overall direction{t.significant ? "" : ", which isn't proven yet"}.
+                  Each dot is one year. The {t.significant ? "dark" : "dashed"} line shows the overall direction{t.significant ? "" : ", which isn't confirmed yet"}.
                 </p>
               </div>
               {t.tested && <Sureness t={t} />}
-              {t.tested && <EvidenceNotes t={t} variable={variable} lat={lat} lon={lon} />}
+              {t.tested && <EvidenceNotes t={t} variable={variable} lat={lat} lon={lon} name={name} />}
             </>
           )}
         </section>
@@ -286,7 +295,7 @@ function PointCase({ lat, lon, name }: { lat: number; lon: number; name?: string
             useApp
               .getState()
               .ask(
-                `Investigate ${name ? shortPlace(name) : formatLatLon(lat, lon)} (${lat.toFixed(3)}, ${lon.toFixed(3)}): what changed on the ground since 2018, and which long-term changes are proven by NASA records? What does it mean for people living there?`,
+                `Investigate ${name ? shortPlace(name) : formatLatLon(lat, lon)} (${lat.toFixed(3)}, ${lon.toFixed(3)}): what changed on the ground since 2018, and which long-term changes are confirmed by NASA records? What does it mean for people living there?`,
               )
           }
           className="btn btn-accent rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-ink"
@@ -382,7 +391,7 @@ function HotspotCase({ id }: { id: string }) {
                 <li key={vid} className="flex items-baseline justify-between gap-3 border-t border-line py-1.5 text-sm first:border-t-0">
                   <span className="text-muted">{PLAIN[vid].name}</span>
                   <span className="text-right">
-                    {!f ? "…" : f.status === "proven" ? <span className="mark font-medium">{f.headline}</span> : <span className="text-faint">{f.status === "nodata" ? "no data" : "no proven change"}</span>}
+                    {!f ? "…" : f.status === "proven" ? <span className="mark font-medium">{f.headline}</span> : <span className="text-faint">{f.status === "nodata" ? "no data" : "no confirmed change"}</span>}
                   </span>
                 </li>
               );
@@ -425,7 +434,7 @@ function PairCase({ index }: { index: number }) {
       <div className="flex flex-col gap-3 px-5 py-4">
         <p className="text-[17px] font-medium leading-snug">
           Two regions {pair.distance_km.toLocaleString()} km apart are moving in <span className="mark">opposite directions</span>: one is{" "}
-          {plain.up}, the other {plain.down}. Both are proven, not luck.
+          {plain.up}, the other {plain.down}. Both are confirmed: very unlikely to be luck.
         </p>
         {row(`This region is ${plain.up}`, pair.increasing, upColor)}
         {row(`This region is ${plain.down}`, pair.decreasing, downColor)}

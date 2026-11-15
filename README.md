@@ -44,9 +44,16 @@ make eval       # 14 analyst questions, auto-graded (uses OpenAI credit)
 make e2e        # browser walkthrough with screenshots (servers running)
 ```
 
-## Data credits
+## Credits and licences
 
-NASA GISS GISTEMP v4; NASA MODIS MOD13C1 (LP DAAC); NASA GPM IMERG V07 (GES DISC); NASA JPL GRACE/GRACE-FO mascons; NASA POWER; NASA FIRMS; NASA GIBS imagery (Black Marble, Blue Marble). AlphaEarth Foundations satellite embeddings (Google DeepMind) and Dynamic World (Google, World Resources Institute) via Google Earth Engine. Sentinel-2 cloudless 2023 by EOX IT Services GmbH (contains modified Copernicus Sentinel data), CC BY-NC-SA 4.0. Place search © OpenStreetMap contributors (Nominatim).
+- **NASA data:** GISTEMP v4 (GISS), MODIS Terra MOD13C1 (LP DAAC), GPM IMERG V07 and GLDAS-2.2 (GES DISC), GRACE/GRACE-FO JPL mascons, FIRMS VIIRS, NASA POWER, GIBS (Black Marble, Blue Marble).
+- **Other data:** AlphaEarth Satellite Embedding (Google DeepMind) and Dynamic World (Google, WRI), CC BY 4.0, via Google Earth Engine (non-commercial / research use). Sentinel-2 cloudless 2023 by EOX (contains modified Copernicus Sentinel data), CC BY-NC-SA 4.0. Place names © OpenStreetMap contributors (ODbL), via OpenFreeMap; place search via Nominatim.
+- **Maps and 3D:** CesiumJS (Apache 2.0). Terrain, Bing Maps aerial imagery and 3D buildings come from the Cesium ion free non-commercial tier, hence the "Upgrade for commercial use" notice on the map.
+- **AI:** OpenAI models for Aisha's text answers and realtime voice.
+- **Software:** React, TypeScript, Vite, Tailwind, GSAP, Motion, Lenis, TanStack Query, Zustand, Python, FastAPI, NumPy, SciPy, pyMannKendall, xarray, Earth Engine API. Fonts: Barlow Condensed and Public Sans (SIL OFL).
+- **Hosting:** Railway.
+
+The full list, ready for the NASA Space Apps References field, is in [docs/references.md](docs/references.md).
 
 ## Deploy (Railway)
 

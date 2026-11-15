@@ -100,7 +100,7 @@ export function AfricaCases() {
               <>
                 <div className="flex items-center gap-2">
                   <span className={`rounded px-1.5 py-0.5 text-[12px] font-semibold ${proven ? "bg-mark text-on-mark" : "border border-line text-muted"}`}>
-                    {proven ? "Proven" : f?.status === "nodata" ? "No data" : "Not proven yet"}
+                    {proven ? "Confirmed trend" : f?.status === "nodata" ? "No data" : "Not confirmed yet"}
                   </span>
                   <span className="text-[13px] text-muted">
                     {PLAIN[c.variable].satellite}, {t.period[0]}–{t.period[1]}

@@ -34,8 +34,9 @@
  "fdr_q": 0.05,
  "legend": {
   "significance": {
-   "limit": 134.81639188878677,
-   "units": "mm per decade"
+   "limit": 111.28662109375,
+   "units": "mm per decade",
+   "scale": "Colour range set by Africa's confirmed trends (90th percentile); stronger changes elsewhere show at full colour."
   },
   "frames": {
    "limit": 129.96211945906927,

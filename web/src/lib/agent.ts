@@ -31,6 +31,15 @@ function sessionId(): string {
   }
 }
 
+/** Forget this tab's conversation so the next question starts fresh (Aisha keeps no memory of earlier turns). */
+export function newConversation() {
+  try {
+    sessionStorage.removeItem("gt-session");
+  } catch {
+    /* storage blocked: nothing to forget */
+  }
+}
+
 /** Send one question and stream the analyst's events. Resolves when the turn ends. */
 export async function askAgent(text: string, onEvent: (e: AgentEvent) => void, signal?: AbortSignal) {
   let res: Response;

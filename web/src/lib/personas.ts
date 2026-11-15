@@ -28,7 +28,7 @@ export const PERSONAS: Persona[] = [
     label: "Researcher",
     why: "Tested trends with 95 % ranges, sources, and data you can download and re-check.",
     questions: [
-      "Where in West Africa is plant greenness proven to be falling?",
+      "Where in West Africa is plant greenness confirmed to be falling?",
       "Is groundwater falling anywhere in northern Nigeria?",
       "Where is rainfall trending in opposite directions in Africa?",
     ],
@@ -36,7 +36,7 @@ export const PERSONAS: Persona[] = [
   {
     id: "journalist",
     label: "Journalist",
-    why: "Check a claim before you publish it: what's proven, what's only observed, what's uncertain.",
+    why: "Check a claim before you publish it: what's confirmed, what's only observed, what's uncertain.",
     questions: [
       "Is Lagos really losing its green spaces?",
       "What changed on the ground around Abuja since 2018?",
@@ -48,7 +48,7 @@ export const PERSONAS: Persona[] = [
     label: "Policymaker",
     why: "Evidence by place: which changes are real and how big they are.",
     questions: [
-      "Which parts of northern Nigeria are proven to be warming?",
+      "Which parts of northern Nigeria are confirmed to be warming?",
       "Is Maiduguri getting drier?",
       "What changed around Lagos since 2018, and is it real?",
     ],

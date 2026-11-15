@@ -254,6 +254,12 @@ body,
   .theme-space .cesium-widget-credits {
     font-size: 9px !important;
   }
+  /* Keep the Cesium logo small so it doesn't sit on top of place names */
+  .theme-space .cesium-credit-logoContainer img {
+    height: 12px !important;
+    width: auto !important;
+    opacity: 0.75;
+  }
 }
 
 /* Printing the Methods page (the Technical Report): no scroll animations, clean pages. */

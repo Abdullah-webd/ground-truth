@@ -2,10 +2,10 @@
  "passed": 20,
  "total": 20,
  "rate": 1.0,
- "median_seconds": 8.4,
+ "median_seconds": 8.3,
  "tokens": {
-  "input": 142237,
-  "output": 5579
+  "input": 160545,
+  "output": 5606
  },
  "results": [
   {
@@ -25,11 +25,11 @@
    ],
    "unverified": [],
    "usage": {
-    "input_tokens": 7874,
-    "output_tokens": 429
+    "input_tokens": 8715,
+    "output_tokens": 352
    },
-   "seconds": 16.5,
-   "answer": "**Observed:** Around Lagos, satellite mapping found strong land-surface change in **0.41%** of the roughly 44 km-wide area between 2018 and 2024. Hotspots included trees changing to built-up land, and water changing to bare ground or built-up land. This is observed change, not a test of its cause.\n\n**Proven:** NASA temperature records, 1980\u20132025, show warming of **1.13 \u00b0C** overall\u2014about **0.25 \u00b0C per decade** (likely **0.21\u20130.30 \u00b0C**). The chance this is luck is less than 1 in 1,000.\n\n**Proven:** NASA plant-greenness records, 2001\u20132025, fell by **0.073** overall; chance this is luck is about 1 in 220.\n\n**Uncertain:** The long-term records use broad grid cells, so they cannot confirm change at each individual hotspot.",
+   "seconds": 11.7,
+   "answer": "**Observed:** Around Lagos, satellite analysis found strong surface change across 0.41% of the area between 2018 and 2024. Hotspots include trees becoming built-up land, and water becoming bare ground or built-up land. This is observed change, not a test of its cause.\n\n**Confirmed trend:** NASA temperature records, 1980\u20132025, show warming of 1.13 \u00b0C\u2014about 0.25 \u00b0C per decade (likely 0.21\u20130.30 \u00b0C). Chance it is luck: less than 1 in 1,000.\n\n**Confirmed trend:** NASA plant-greenness records, 2001\u20132025, fell by 0.073 units. Chance it is luck: about 1 in 220.\n\n**Uncertain:** Greenness is measured in ~55 km squares, mixing Lagos, water and countryside; it cannot by itself identify why local land changed.",
    "errors": []
   },
   {
@@ -43,17 +43,18 @@
     "no_error": true
    },
    "tools": [
-    "set_view",
+    "locate_place",
+    "locate_place",
     "trend_in_region",
     "trend_in_region"
    ],
    "unverified": [],
    "usage": {
-    "input_tokens": 7202,
-    "output_tokens": 328
+    "input_tokens": 10863,
+    "output_tokens": 397
    },
-   "seconds": 9.9,
-   "answer": "**Proven:** Yes. Across northern India (73\u201389\u00b0E, 26\u201334\u00b0N), NASA groundwater estimates show an average decline of **101 mm from 2003 to 2025**\u2014about **46 mm per decade**. The likely rate is **37\u201353 mm per decade** down, and the chance this is just luck is **less than 1 in 1,000**. About **42%** of the region shows a significant decrease.\n\n**Proven:** Total water stored in the land also fell by **350 mm from 2003\u20132023**.\n\nThis means less underground water is available on average for wells and irrigation.\n\n**Uncertain:** Groundwater is estimated at roughly **300 km** resolution, so it cannot show conditions at an individual village or borehole.",
+   "seconds": 11.9,
+   "answer": "Yes\u2014across northern India, the evidence shows a real regional decline.\n\n**Confirmed trend:** NASA groundwater estimates for 2003\u20132025 fell by about **79 mm** overall, or **36 mm per decade**. The likely range is **29\u201342 mm per decade**, and the chance this is just luck is **less than 1 in 1,000**.\n\n**Confirmed trend:** Total water stored in the land also fell by about **274 mm** from 2003\u20132023. This includes groundwater, soil moisture, rivers, lakes, snow and ice.\n\n**Uncertain:** Groundwater is a model estimate constrained by GRACE, whose effective footprint is about **300 km**. It shows the broad regional picture, not the level in an individual well or village.",
    "errors": []
   },
   {
@@ -71,11 +72,11 @@
    ],
    "unverified": [],
    "usage": {
-    "input_tokens": 4672,
-    "output_tokens": 241
+    "input_tokens": 5188,
+    "output_tokens": 182
    },
-   "seconds": 5.1,
-   "answer": "Using NASA rainfall records, 2001\u20132024, the clearest opposite directions include:\n\n- **Proven:** Near **65.6\u00b0S, 165.4\u00b0W** in the South Pacific, rainfall increased by about **177 mm per decade** across roughly **1.76 million km\u00b2**.\n- **Proven:** Near **13.8\u00b0S, 123.9\u00b0W** in the southeast Pacific, rainfall decreased by about **78 mm per decade** across roughly **351,000 km\u00b2**.\n- **Proven:** Near **44.3\u00b0S, 113.6\u00b0E** in the southern Indian Ocean, rainfall decreased by about **177 mm per decade** across roughly **168,000 km\u00b2**.\n\nThese are mostly ocean regions, so they describe shifts in large-scale weather patterns rather than direct changes to farming rainfall on land.\n\n**Uncertain:** This global comparison identifies major contrasting areas, not the causes of the shifts.",
+   "seconds": 5.0,
+   "answer": "**Confirmed trend:** NASA rainfall records, 2001\u20132024, show opposite directions in several ocean regions:\n\n- Near **66\u00b0S, 165\u00b0W** in the South Pacific, rainfall increased by about **177 mm per decade**.\n- Near **14\u00b0S, 124\u00b0W** in the southeast Pacific, it decreased by about **78 mm per decade**.\n- Near **44\u00b0S, 114\u00b0E** south of Western Australia, it decreased by about **177 mm per decade**.\n\nThese contrasting shifts are thousands of kilometres apart, showing that rainfall is not changing uniformly around the planet.\n\n**Uncertain:** These are large regional patterns; rainfall grids are about 55 km wide and cannot describe individual storms or towns.",
    "errors": []
   },
   {
@@ -95,11 +96,11 @@
    ],
    "unverified": [],
    "usage": {
-    "input_tokens": 7417,
-    "output_tokens": 334
+    "input_tokens": 8268,
+    "output_tokens": 318
    },
-   "seconds": 9.0,
-   "answer": "**Observed:** Nairobi\u2019s last 30 days (13 October\u201311 November) averaged **22.16 \u00b0C**\u2014**1.75 \u00b0C warmer** than the 1991\u20132020 normal, and warmer than the same dates in every year of that reference period. Rainfall was **61.8 mm**, or **86% of normal** (71.8 mm).\n\n**Proven:** NASA temperature records for **1980\u20132025** show warming of **1.39 \u00b0C** around Nairobi, about **0.31 \u00b0C per decade** (likely **0.23\u20130.38 \u00b0C**). The chance this is luck is less than **1 in 1,000**.\n\n**Not proven yet:** NASA rainfall records for **2001\u20132024** suggest wetter conditions overall, but year-to-year swings are bigger than the change.\n\n**Uncertain:** Rainfall varies sharply across Nairobi, while this record represents a wider area.",
+   "seconds": 8.4,
+   "answer": "**Observed:** Nairobi\u2019s last 30 days (14 October\u201312 November 2026) were exceptionally warm: average temperature was **22.14 \u00b0C**, or **1.76 \u00b0C above** the 1991\u20132020 normal\u2014higher than for these dates in every year of that reference period. Rainfall was **68.9 mm**, close to normal at **94%**.\n\n**Confirmed trend:** NASA temperature records show warming of **1.39 \u00b0C from 1980\u20132025** near Nairobi, with less than a **1 in 1,000** chance of this being luck.\n\n**Not confirmed yet:** Rainfall has risen by **255 mm across 2001\u20132024**, but year-to-year swings are bigger than the change.\n\n**Uncertain:** Temperature is mapped on a coarse ~220 km grid, so it is not a neighbourhood-level measurement.",
    "errors": []
   },
   {
@@ -113,17 +114,16 @@
     "no_error": true
    },
    "tools": [
-    "set_view",
     "trend_in_region",
     "trend_in_region"
    ],
    "unverified": [],
    "usage": {
-    "input_tokens": 4927,
+    "input_tokens": 5529,
     "output_tokens": 311
    },
-   "seconds": 5.3,
-   "answer": "**Proven:** Yes. NASA surface-temperature records (1980\u20132025) show the Arctic, north of 66\u00b0N, warmed about **3.0 \u00b0C**\u2014around **0.66 \u00b0C per decade**. The global average warmed about **0.95 \u00b0C**, or **0.21 \u00b0C per decade**.\n\nThat means the Arctic\u2019s regional warming rate was roughly **three times faster** than the world average. The Arctic rate is likely between **0.56 and 0.75 \u00b0C per decade**, and the chance it is just luck is less than **1 in 1,000**.\n\n**Uncertain:** This is an Arctic-wide average; warming varies from place to place within the region.",
+   "seconds": 6.2,
+   "answer": "Yes\u2014much faster.\n\n**Confirmed trend:** NASA temperature records for 1980\u20132025 show the Arctic (north of 66.5\u00b0N) warmed about **3.1\u00b0C**, or **0.69\u00b0C per decade**. The likely rate range is **0.58\u20130.79\u00b0C per decade**, with less than a 1-in-1,000 chance this is luck.\n\n**Confirmed trend:** Over the whole world, warming was about **0.95\u00b0C**, or **0.21\u00b0C per decade**. That means the Arctic\u2019s regional warming rate was roughly **three times faster**.\n\n**Uncertain:** Temperature is measured on a coarse grid\u2014about 220 km, smoothed over about 1,200 km\u2014so this is a broad regional comparison, not every individual Arctic location.",
    "errors": []
   },
   {
@@ -140,11 +140,11 @@
    ],
    "unverified": [],
    "usage": {
-    "input_tokens": 4286,
-    "output_tokens": 42
+    "input_tokens": 4814,
+    "output_tokens": 46
    },
-   "seconds": 3.1,
-   "answer": "Showing plant greenness for **2010**.",
+   "seconds": 3.3,
+   "answer": "Showing the **plant greenness** map for **2010**.",
    "errors": []
   },
   {
@@ -161,11 +161,11 @@
    ],
    "unverified": [],
    "usage": {
-    "input_tokens": 4656,
-    "output_tokens": 157
+    "input_tokens": 5164,
+    "output_tokens": 150
    },
-   "seconds": 7.3,
-   "answer": "**Observed:** Yes. NASA\u2019s VIIRS fire sensor detected **96 thermal hotspots** in California in the past 24 hours. The strongest detections were near **37.43\u00b0N, 119.59\u00b0W**, recorded at **20:22 UTC on 14 November 2026**.\n\n**Uncertain:** These are heat detections, not confirmed fire perimeters; some can be agricultural or industrial heat sources.",
+   "seconds": 8.6,
+   "answer": "**Observed:** Yes. NASA FIRMS detected **117 heat hotspots** in California in the last 24 hours. The strongest were near **37.43\u00b0N, 119.58\u00b0W**, with detected fire intensity up to **23.55 MW**.\n\nThese are satellite heat detections, so they are mostly vegetation fires but can occasionally include industrial heat sources.\n\n**Uncertain:** A hotspot is not the same as a mapped fire perimeter; several detections can belong to one fire.",
    "errors": []
   },
   {
@@ -185,11 +185,11 @@
    ],
    "unverified": [],
    "usage": {
-    "input_tokens": 6939,
-    "output_tokens": 221
+    "input_tokens": 7739,
+    "output_tokens": 225
    },
-   "seconds": 6.4,
-   "answer": "**Proven:** Yes. NASA\u2019s 2003\u20132023 records show Greenland lost an average **1,300 mm** of water stored in the land over that period. This includes snow and ice, so it is strong evidence of ice loss. The decline was about **650 mm per decade**, likely between **321 and 1,194 mm per decade**. The chance this is just luck is less than **1 in 1,000**.\n\n**Uncertain:** This measure also includes other water, and its footprint is about 300 km wide, so it cannot map loss from individual glaciers.",
+   "seconds": 8.3,
+   "answer": "Yes.  \n\n**Confirmed trend**: Greenland\u2019s total water stored on land fell by about **1,300 mm** from **2003\u20132023**, based on NASA water-storage records. That includes snow and ice, as well as groundwater and surface water. The average decline was about **650 mm per decade**, with less than a **1 in 1,000** chance of being random.\n\nThis is strong evidence that Greenland has been losing ice mass overall.\n\n**Uncertain:** This measure has an effective resolution of about **300 km** and includes more than ice alone, so it cannot show losses from each individual glacier.",
    "errors": []
   },
   {
@@ -210,11 +210,11 @@
    ],
    "unverified": [],
    "usage": {
-    "input_tokens": 7874,
-    "output_tokens": 364
+    "input_tokens": 8729,
+    "output_tokens": 354
    },
-   "seconds": 8.5,
-   "answer": "**Observed:** Between 2017 and 2025, satellites found strong surface change across **2.88%** of the area around Dubai. Several hotspots changed from **bare ground to built-up land**, including areas of about **3.0 km\u00b2** north-east of central Dubai and **2.4 km\u00b2** nearby.\n\n**Proven:** NASA temperature records for 1980\u20132025 show Dubai has warmed by **1.91 \u00b0C** overall\u2014about **0.43 \u00b0C per decade** (likely **0.31\u20130.56 \u00b0C**). The chance this is luck is less than **1 in 1,000**.\n\n**Proven:** NASA plant-greenness records for 2001\u20132025 increased by **0.021 NDVI** overall; chance this is luck is about **1 in 97**.\n\n**Uncertain:** The land-change map identifies changed surfaces, not the specific projects or their causes.",
+   "seconds": 7.9,
+   "answer": "**Observed:** Between 2017 and 2025, 2.9% of the area around Dubai changed strongly. Several hotspots changed from bare ground to built-up land, including areas of about 3.0 km\u00b2 north-east of central Dubai and 2.4 km\u00b2 farther north.\n\n**Confirmed trend:** NASA temperature records, 1980\u20132025, show warming of 1.91 \u00b0C overall\u2014about 0.43 \u00b0C per decade. The chance this is luck is less than 1 in 1,000.\n\n**Confirmed trend:** NASA plant-greenness records, 2001\u20132025, increased by 0.021 NDVI units overall; chance of luck is about 1 in 97.\n\n**Uncertain:** Temperature covers a roughly 220 km grid, while greenness covers about 55 km, so they cannot pinpoint conditions within individual Dubai neighbourhoods.",
    "errors": []
   },
   {
@@ -231,11 +231,11 @@
    ],
    "unverified": [],
    "usage": {
-    "input_tokens": 4438,
-    "output_tokens": 80
+    "input_tokens": 4988,
+    "output_tokens": 114
    },
-   "seconds": 3.5,
-   "answer": "**Uncertain:** There is no plant-greenness record at 0\u00b0 N, 150\u00b0 W because this point is open ocean. NASA\u2019s vegetation record is land-only, so no vegetation trend can be measured there.",
+   "seconds": 3.9,
+   "answer": "**Observed:** There is no plant-greenness trend at 0\u00b0 N, 150\u00b0 W because this point is open ocean. NASA\u2019s greenness record is land-only, so it has no data there.\n\n**Uncertain:** This grid is about 55 km wide, but it contains no land vegetation to measure.",
    "errors": []
   },
   {
@@ -254,11 +254,11 @@
    ],
    "unverified": [],
    "usage": {
-    "input_tokens": 6869,
-    "output_tokens": 174
+    "input_tokens": 7639,
+    "output_tokens": 169
    },
-   "seconds": 6.3,
-   "answer": "**Not proven yet:** Cairo\u2019s NASA rainfall record (2001\u20132024) suggests a wetter direction, about **26 mm more rainfall** across the period. But this is **not proven yet**: year-to-year ups and downs are bigger than the change, with about a **5 in 10** chance it is luck.\n\n**Uncertain:** Rainfall is measured on a roughly 0.5\u00b0 grid, so this represents Cairo\u2019s wider area rather than each neighbourhood.",
+   "seconds": 5.5,
+   "answer": "**Not confirmed yet:** Cairo\u2019s NASA rainfall record (2001\u20132024) suggests a wetter direction: about **26 mm more rainfall** across the period. But the year-to-year ups and downs are bigger than this change; the chance it is just luck is about **5 in 10**. So Cairo is **not clearly getting wetter or drier yet**.\n\n**Uncertain:** Rainfall is measured in grid squares about 55 km wide, so this is a city-area average rather than a reading from one neighbourhood.",
    "errors": []
   },
   {
@@ -278,11 +278,11 @@
    ],
    "unverified": [],
    "usage": {
-    "input_tokens": 7865,
-    "output_tokens": 354
+    "input_tokens": 8722,
+    "output_tokens": 362
    },
-   "seconds": 9.1,
-   "answer": "**Observed:** Yes. From 2018 to 2024, satellites found strong land-surface change across **3.2%** of the area around Phoenix. Several hotspots changed from crops or bare ground to built-up land, including areas northwest, north, and east of the city. Other hotspots shifted from crops to bare ground.\n\n**Proven:** NASA temperature records (1980\u20132025) show Phoenix\u2019s wider area warmed by **1.4 \u00b0C** overall\u2014about **0.31 \u00b0C per decade**. The likely rate is **0.19\u20130.42 \u00b0C per decade**; chance this is luck is less than 1 in 1,000.\n\n**Not proven yet:** NASA plant-greenness records (2001\u20132025) show no clear overall change.\n\n**Uncertain:** Land-change results cover about a 44 km square and identify surface change, not its cause.",
+   "seconds": 8.5,
+   "answer": "Yes\u2014parts of the land around Phoenix changed noticeably between 2018 and 2024.\n\n**Observed:** About 3.2% of the mapped area changed strongly. Several hotspots changed from crops or bare ground to built-up land, including sites north, west and southeast of central Phoenix. The largest mapped change was 3.6 km\u00b2 of crops becoming bare ground west of the city.\n\n**Confirmed trend:** NASA temperature records, 1980\u20132025, show warming of 1.4 \u00b0C overall\u2014about 0.31 \u00b0C per decade. The chance this is just luck is less than 1 in 1,000.\n\n**Not confirmed yet:** NASA plant-greenness records, 2001\u20132025, show a small decline, but year-to-year ups and downs are bigger than the change.\n\n**Uncertain:** Greenness is measured in grid squares about 55 km wide, mixing city, farms and desert.",
    "errors": []
   },
   {
@@ -301,11 +301,11 @@
    ],
    "unverified": [],
    "usage": {
-    "input_tokens": 6892,
-    "output_tokens": 215
+    "input_tokens": 7698,
+    "output_tokens": 225
    },
-   "seconds": 6.1,
-   "answer": "**Not proven yet:** Across the Sahel, NASA rainfall records for 2001\u20132024 show a small increase of **11.6 mm** overall (about **5.0 mm per decade**). But the year-to-year swings are bigger than this change: the chance it is just luck is about **6 in 10**.\n\nOnly about **2.8%** of the region has a significant increase, while **0.5%** has a significant decrease.\n\n**Uncertain:** The Sahel is very large, so rainfall can be changing differently from one area to another.",
+   "seconds": 6.0,
+   "answer": "**Not confirmed yet:** Across the Sahel, NASA rainfall records (2001\u20132024) show a small increase of **11.6 mm** overall, or **5.0 mm per decade**. But this is not a confirmed regional trend: the chance it is just natural year-to-year variation is about **6 in 10**.\n\nOnly about **2.8%** of the region has a confirmed increase, while **0.5%** has a confirmed decrease.\n\n**Uncertain:** Rainfall is measured on grid squares about 55 km wide, so local places can differ from the Sahel-wide average.",
    "errors": []
   },
   {
@@ -321,16 +321,16 @@
    },
    "tools": [
     "locate_place",
-    "trend_in_region",
-    "set_view"
+    "set_view",
+    "trend_in_region"
    ],
    "unverified": [],
    "usage": {
-    "input_tokens": 6932,
-    "output_tokens": 271
+    "input_tokens": 7740,
+    "output_tokens": 286
    },
-   "seconds": 7.0,
-   "answer": "**Proven:** Yes. China\u2019s average plant greenness increased by **0.0437 NDVI units** in NASA MODIS records from **2001\u20132025**. That is about **0.0182 per decade**; the likely range is **0.0118\u20130.0243 per decade**. The chance this is just luck is about **1 in 160**.\n\n**Observed:** Significant greening covers about **34%** of the mapped area, while significant browning covers about **0.1%**.\n\n**Uncertain:** This measures satellite-visible plant greenness, not whether the change comes from forests, crops, grassland, or wetter growing seasons.",
+   "seconds": 6.7,
+   "answer": "Yes\u2014on average, China is greening in the NASA plant-greenness record.\n\n**Confirmed trend:** China\u2019s average plant greenness increased by **0.0437 NDVI** from **2001\u20132025**\u2014about **0.0182 per decade**. The likely rate is **0.0118\u20130.0243 per decade**. The chance this is just luck is about **1 in 160**.\n\n**Observed:** Significant greening covers about **34%** of China\u2019s 55-km grid cells, while significant browning covers about **0.1%**.\n\n**Uncertain:** This shows greener land, not why; the 55-km cells mix forests, farms, grasslands and cities.",
    "errors": []
   },
   {
@@ -350,11 +350,11 @@
    ],
    "unverified": [],
    "usage": {
-    "input_tokens": 9115,
-    "output_tokens": 318
+    "input_tokens": 9958,
+    "output_tokens": 285
    },
-   "seconds": 8.8,
-   "answer": "**Observed:** Over the last 24 months (13 Nov 2024\u201311 Nov 2026), Maiduguri\u2019s daily temperatures ranged from **10.7\u00b0C** at night (19 Dec 2024) to **45.6\u00b0C** by day (24 Apr 2025): a **34.8\u00b0C range**. The average temperature was **29.5\u00b0C**, and 20 of 23 complete months were warmer than the 1991\u20132020 normal.\n\n**Proven:** NASA temperature records for **1980\u20132025** show warming of **1.13\u00b0C** around Maiduguri, about **0.25\u00b0C per decade** (likely **0.20\u20130.31\u00b0C**). The chance this is luck is less than 1 in 1,000.\n\n**Uncertain:** The long-term result represents a roughly 2\u00b0 grid cell, not only the city.",
+   "seconds": 9.1,
+   "answer": "**Observed:** Over the last two years, Maiduguri\u2019s daily temperature ranged from **10.7\u00b0C** (19 December 2024) to **45.6\u00b0C** (24 April 2025): a **34.8\u00b0C** range. The average temperature was **29.5\u00b0C**, about **1.2\u00b0C warmer** than the 1991\u20132020 normal.\n\n**Confirmed trend:** NASA temperature records for **1980\u20132025** show warming of **1.13\u00b0C** overall. The chance this is just luck is less than **1 in 1,000**.\n\n**Uncertain:** The long-term temperature record is coarse\u2014about 220 km\u2014so it represents the wider Maiduguri area, not one neighbourhood.",
    "errors": []
   },
   {
@@ -369,16 +369,17 @@
    },
    "tools": [
     "locate_place",
-    "now_vs_normal",
-    "trend_at_point"
+    "recent_history",
+    "trend_at_point",
+    "recent_history"
    ],
    "unverified": [],
    "usage": {
-    "input_tokens": 7182,
-    "output_tokens": 269
+    "input_tokens": 13173,
+    "output_tokens": 455
    },
-   "seconds": 9.5,
-   "answer": "**Observed:** Yes. In Lagos, the last 30 days averaged **27.66 \u00b0C**\u2014**1.38 \u00b0C hotter** than the 1991\u20132020 normal for these dates, and hotter than every comparable year in that reference period.\n\n**Proven:** NASA surface-temperature records for **1980\u20132025** show warming of **1.13 \u00b0C** around Lagos. The increase is about **0.25 \u00b0C per decade**, likely **0.21\u20130.30 \u00b0C**, with less than a **1 in 1,000** chance of being luck.\n\n**Uncertain:** This compares the latest 30 days, not the whole calendar year.",
+   "seconds": 13.0,
+   "answer": "**Observed:** Yes. Lagos has averaged **0.72 \u00b0C warmer than the 1991\u20132020 normal** so far in 2026. **10 of 10 complete months** were warmer than normal. The hottest day was **31.9 \u00b0C** on 1 April.\n\n**Confirmed trend:** NASA temperature records for **1980\u20132025** show warming of **1.13 \u00b0C** around Lagos, about **0.25 \u00b0C per decade**. The chance this is just luck is less than **1 in 1,000**.\n\n**Uncertain:** This year\u2019s figure includes incomplete November data; city-scale temperature is based on a coarse grid of about 220 km.",
    "errors": []
   },
   {
@@ -394,16 +395,15 @@
    "tools": [
     "locate_place",
     "recent_history",
-    "trend_at_point",
-    "trend_in_region"
+    "trend_at_point"
    ],
    "unverified": [],
    "usage": {
-    "input_tokens": 14305,
-    "output_tokens": 472
+    "input_tokens": 9964,
+    "output_tokens": 301
    },
-   "seconds": 12.3,
-   "answer": "Using **Punjab, India**:\n\n**Observed:** Over the last 24 months, the central Punjab record averaged **24.85 \u00b0C**, which was **0.62 \u00b0C cooler** than the 1991\u20132020 normal. **7 of 23 complete months** were warmer than normal. The hottest day reached **48.3 \u00b0C** on 11 June 2025.\n\n**Proven:** NASA temperature records for Punjab, **1980\u20132025**, show warming of **1.26 \u00b0C** overall\u2014about **0.28 \u00b0C per decade** (likely **0.17\u20130.39 \u00b0C**). The chance this is just luck is less than **1 in 1,000**.\n\n**Uncertain:** The recent figure represents a central-Punjab weather grid, so local conditions can differ.",
+   "seconds": 8.9,
+   "answer": "Using Punjab, India:\n\n**Observed:** Over the last 24 months, the average temperature was **24.85 \u00b0C**\u2014about **0.62 \u00b0C cooler** than the 1991\u20132020 normal. **7 of 23 complete months** were warmer than normal. The hottest day reached **48.3 \u00b0C** on 11 June 2025.\n\n**Confirmed trend:** NASA temperature records for 1980\u20132025 show Punjab has warmed by **1.24 \u00b0C** overall, at about **0.28 \u00b0C per decade**. The chance this is just luck is less than 1 in 1,000.\n\n**Uncertain:** The recent result represents a central Punjab point; the long-term temperature grid is about 220 km wide.",
    "errors": []
   },
   {
@@ -424,11 +424,11 @@
    ],
    "unverified": [],
    "usage": {
-    "input_tokens": 7430,
-    "output_tokens": 337
+    "input_tokens": 8255,
+    "output_tokens": 330
    },
-   "seconds": 8.7,
-   "answer": "**Observed:** Phoenix\u2019s last 30 days were slightly cooler than usual: **20.16 \u00b0C**, or **0.36 \u00b0C below** the 1991\u20132020 normal.\n\n**Observed:** Rainfall was highly unusual: **129.1 mm**, **827% of normal**\u2014more than in any same-period year from 1991\u20132020.\n\n**Proven:** NASA temperature records show the wider Phoenix grid warmed **1.4 \u00b0C from 1980\u20132025** (likely **0.19\u20130.42 \u00b0C per decade**; chance of luck less than 1 in 1,000).\n\n**Not proven yet:** NASA rainfall records show no clear long-term rainfall change since 2001; year-to-year ups and downs are bigger than the change.\n\n**Uncertain:** This is a 30-day comparison, so it describes unusual weather, not a climate trend.",
+   "seconds": 8.5,
+   "answer": "**Observed:** Phoenix\u2019s past 30 days (14 October\u201312 November) were almost exactly normal in temperature: **20.19 \u00b0C**, just **0.08 \u00b0C cooler** than the 1991\u20132020 average.\n\nRainfall was highly unusual: **127.6 mm**, or **787% of normal**\u2014more rain than in any comparable 30-day period in the 1991\u20132020 record.\n\n**Confirmed trend:** NASA temperature records show warming of **1.4 \u00b0C from 1980\u20132025** around Phoenix, about **0.31 \u00b0C per decade**. The chance this is luck is less than **1 in 1,000**.\n\n**Not confirmed yet:** Annual rainfall has no confirmed long-term change since 2001; year-to-year swings are larger than the estimated change.\n\n**Uncertain:** Temperature is measured on a roughly 220 km grid, much broader than Phoenix itself.",
    "errors": []
   },
   {
@@ -447,15 +447,16 @@
     "locate_place",
     "trend_at_point",
     "trend_at_point",
+    "trend_at_point",
     "trend_at_point"
    ],
    "unverified": [],
    "usage": {
-    "input_tokens": 7553,
-    "output_tokens": 337
+    "input_tokens": 8705,
+    "output_tokens": 406
    },
-   "seconds": 7.2,
-   "answer": "Near Abuja, the evidence does **not yet prove** that rainfall is declining.\n\n**Not proven yet:** NASA rainfall records (2001\u20132024) show a fall of about **214 mm** overall, but year-to-year swings are larger; the chance this is luck is about **5 in 10**.\n\n**Not proven yet:** NASA groundwater estimates (2003\u20132025) rose by about **96 mm**, but this is also not proven; chance is about **2 in 10**.\n\n**Proven:** Plant greenness fell by **0.062** from 2001\u20132025, with less than **1 in 1,000** chance of luck.\n\n**Uncertain:** Groundwater is measured at roughly **300 km** scale, so it cannot describe an individual farm or borehole.",
+   "seconds": 7.8,
+   "answer": "Near Abuja, the long-term records do **not** show a confirmed drying trend overall.\n\n**Not confirmed yet:** NASA rainfall records (2001\u20132024) fell by about **214 mm** overall, but year-to-year swings are bigger than this change; the chance it is luck is about **5 in 10**.\n\n**Confirmed trend:** Plant greenness declined by **0.062** from 2001\u20132025. This browning is very unlikely to be chance (less than **1 in 1,000**).\n\n**Confirmed trend:** Water stored in the land rose by about **310 mm** from 2003\u20132023\u2014roughly a **31 cm** layer of water. Groundwater also appears higher, but that rise is not confirmed yet.\n\n**Uncertain:** These are broad grid cells, not a farm measurement. Greenness near Abuja can reflect urban growth and land use as well as moisture; groundwater and total water are especially coarse (about 300 km).",
    "errors": []
   },
   {
@@ -476,13 +477,13 @@
    ],
    "unverified": [],
    "usage": {
-    "input_tokens": 7809,
-    "output_tokens": 325
+    "input_tokens": 8694,
+    "output_tokens": 338
    },
-   "seconds": 8.4,
-   "answer": "**Proven:** Lagos\u2019s wider area has lost plant greenness in NASA MODIS records (2001\u20132025): down **0.073 NDVI** overall. The decrease is likely between **0.022 and 0.036 NDVI per decade**; the chance it is just luck is about **1 in 220**.\n\n**Observed:** Satellite change mapping found **0.41%** of the area around Lagos changed strongly from 2018\u20132024. One mapped hotspot, about **0.61 km\u00b2**, changed from **trees to built-up land**.\n\n**Proven:** The same broad area warmed by **1.13 \u00b0C** in NASA temperature records (1980\u20132025).\n\n**Uncertain:** The greenness trend uses a coarse **0.5\u00b0** grid, so it shows the wider Lagos area\u2014not every individual park or street tree.",
+   "seconds": 7.0,
+   "answer": "Yes\u2014Lagos is showing signs of green-space loss.\n\n**Observed:** From 2018 to 2024, satellites found tree-to-built-up change in a hotspot west of central Lagos, covering about 0.61 km\u00b2. Across the area examined, 0.41% changed strongly; several hotspots also shifted between trees, water and flooded vegetation.\n\n**Confirmed trend:** NASA plant-greenness records for 2001\u20132025 show a decline of 0.073 NDVI overall around Lagos\u2014about 0.030 per decade. The chance this is just luck is about 1 in 220.\n\n**Confirmed trend:** NASA temperature records show warming of 1.13 \u00b0C since 1980.\n\n**Uncertain:** The greenness grid is about 55 km wide, mixing Lagos with nearby water and countryside, so it cannot measure every individual park.",
    "errors": []
   }
  ],
- "at": "2026-11-14T22:58:37"
+ "at": "2026-11-15T08:10:47"
 }

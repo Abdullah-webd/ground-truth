@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { isLite, setLite, slowConnection } from "../../lib/lite";
 import { api } from "../../lib/api";
 import { trackVisualViewport } from "../../lib/layout";
 import { PLAIN } from "../../lib/plain";
@@ -292,6 +293,12 @@ function LayersSheet({ onClose }: { onClose: () => void }) {
             sub="Real 3D cities when you zoom in. Switches to the globe; heavier on older phones."
           />
         )}
+        <Toggle
+          on={isLite()}
+          onClick={() => setLite(!isLite())}
+          title="Lite mode"
+          sub={`For slow or costly data: a smooth Earth, lighter maps, no 3D. ${slowConnection() ? "Your connection looks slow, so it's suggested." : "Reloads the map."}`}
+        />
         <button
           type="button"
           onClick={(e) => {
@@ -341,6 +348,13 @@ function AishaDock() {
       /* private mode: fine, the bubble just shows again next time */
     }
   };
+  // The hello bubble covers part of the map: let it go by itself after a few seconds.
+  useEffect(() => {
+    if (!hello) return;
+    const id = window.setTimeout(dismissHello, 7000);
+    return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hello]);
   const type = () => {
     dismissHello();
     setSheet("full");

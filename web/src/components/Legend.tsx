@@ -16,9 +16,9 @@ export function Legend({ meta, mode }: { meta: VariableMeta; mode: "trend" | "ye
       </div>
       <div className="h-2.5 rounded-sm" style={{ background: gradient }} aria-hidden />
       <div className="tabular mt-1 flex justify-between text-[11px] text-muted">
-        <span>−{trim(scale.limit)}</span>
+        <span>≤ −{trim(scale.limit)}</span>
         <span>0</span>
-        <span>+{trim(scale.limit)}</span>
+        <span>≥ +{trim(scale.limit)}</span>
       </div>
       <div className="mt-1 flex justify-between text-[11px] text-muted">
         <span>{PLAIN[meta.id].down}</span>
@@ -27,8 +27,11 @@ export function Legend({ meta, mode }: { meta: VariableMeta; mode: "trend" | "ye
       {mode === "trend" && (
         <div className="legend-detail mt-2 flex items-center gap-2 text-[11px] text-muted">
           <span className="inline-block h-2.5 w-5 rounded-sm" style={{ background: "rgba(124,130,140,.6)" }} aria-hidden />
-          Grey: no proven change
+          Grey or clear: no confirmed change (not missing data)
         </div>
+      )}
+      {mode === "trend" && (
+        <p className="legend-detail mt-1 text-[11px] text-faint">Colour range set by Africa's confirmed trends; stronger changes show at full colour.</p>
       )}
     </div>
   );

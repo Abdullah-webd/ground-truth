@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
 import { globe } from "../globe/controller";
-import { downloadText, evidenceCsv, fmtNum, type EvidenceCard as Card, type TrendEvidence } from "../lib/evidence";
+import { csvName, downloadText, evidenceCsv, fmtNum, type EvidenceCard as Card, type TrendEvidence } from "../lib/evidence";
 import { PLAIN } from "../lib/plain";
 import { useApp } from "../state/store";
 import { TIER } from "../lib/evidence";
@@ -95,7 +95,7 @@ export function EvidenceCard({ card, index }: { card: Card; index: number }) {
             {card.chance_luck && <p className="text-muted">Chance it's just luck: {card.chance_luck}</p>}
             {card.scope === "region" && card.share_significant_decrease != null && (
               <p className="tabular text-muted">
-                Proven {PLAIN[card.variable]?.down ?? "falling"} across {Math.round((card.share_significant_decrease ?? 0) * 100)}% of the area,{" "}
+                Confirmed {PLAIN[card.variable]?.down ?? "falling"} across {Math.round((card.share_significant_decrease ?? 0) * 100)}% of the area,{" "}
                 {PLAIN[card.variable]?.up ?? "rising"} across {Math.round((card.share_significant_increase ?? 0) * 100)}%
               </p>
             )}
@@ -125,7 +125,7 @@ export function EvidenceCard({ card, index }: { card: Card; index: number }) {
         {card.kind === "trend" && card.tier !== "no_data" && (
           <button
             type="button"
-            onClick={() => downloadText(`ground-truth-${card.variable}-${card.period.join("-")}.csv`, evidenceCsv(card))}
+            onClick={() => downloadText(csvName(card.variable, card.place ?? (card.bbox ? { bbox: card.bbox } : null), card.period), evidenceCsv(card))}
             className="btn btn-quiet h-8 rounded-lg border border-line px-2.5 text-[12px] text-ink"
           >
             Download the data

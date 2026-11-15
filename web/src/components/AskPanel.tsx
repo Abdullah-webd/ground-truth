@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "motion/react";
 import { Fragment, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { askAgent, type AgentEvent } from "../lib/agent";
+import { askAgent, newConversation, type AgentEvent } from "../lib/agent";
 import { applyCommand, newTurnContext, type TurnContext } from "../lib/applyCommand";
 import { VoiceSession, type VoiceState } from "../lib/voice";
 import { useApp } from "../state/store";
@@ -39,12 +39,16 @@ const VOICE_LABEL: Record<VoiceState, string> = {
 
 const LABELS: Record<string, string> = {
   proven: "proven",
+  "confirmed trend": "proven",
+  confirmed: "proven",
+  "not confirmed yet": "not_proven",
+  "not confirmed": "not_proven",
   "not proven yet": "not_proven",
   "not proven": "not_proven",
   observed: "observed",
 };
 
-/** Inline **bold**; Aisha's claim labels (**Proven**, **Not proven yet**, **Observed**) become tier tags. */
+/** Inline **bold**; Aisha's claim labels (**Confirmed trend**, **Not confirmed yet**, **Observed**) become tier tags. */
 function Inline({ text }: { text: string }) {
   return (
     <>
@@ -357,6 +361,18 @@ export function AskPanel() {
         <p className="text-[11px] text-faint">Every answer comes with its evidence, and every number is checked against the NASA data.</p>
       </form>
 
+      {turns.length > 0 && !busy && (
+        <button
+          type="button"
+          onClick={() => {
+            newConversation();
+            setTurns([]);
+          }}
+          className="btn btn-quiet self-start rounded-lg border border-line px-2.5 py-1 text-[12px] text-muted"
+        >
+          New question (clear this conversation)
+        </button>
+      )}
       {turns.length === 0 && <QuickStarts onAsk={(q) => void send(q)} />}
 
       <div className="flex flex-col gap-4" aria-live="polite">

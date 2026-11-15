@@ -52,7 +52,7 @@ export function Timeline({ variant = "desktop", bottom }: { variant?: "desktop" 
               {mapView === v && (
                 <motion.span layoutId="view-pill" className="absolute inset-0 rounded-md bg-paper shadow-sm" transition={{ duration: 0.25 }} />
               )}
-              <span className="relative">{v === "trend" ? "Proven trends" : "Play the years"}</span>
+              <span className="relative">{v === "trend" ? "Confirmed trends" : "Play the years"}</span>
             </button>
           ))}
         </div>
