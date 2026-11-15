@@ -6,6 +6,7 @@ import csv
 import io
 import threading
 import time
+from datetime import datetime, timedelta, timezone
 
 import requests
 
@@ -13,7 +14,7 @@ from .config import FIRMS_MAP_KEY, USER_AGENT
 from .nowcast import UpstreamError
 
 SOURCE = "VIIRS_NOAA20_NRT"
-FIRMS_AREA = "https://firms.modaps.eosdis.nasa.gov/api/area/csv/{key}/{source}/world/1"
+FIRMS_AREA = "https://firms.modaps.eosdis.nasa.gov/api/area/csv/{key}/{source}/world/2"  # FIRMS day ranges are UTC dates; "1" is empty just after midnight, so take 2 and trim to 24 h
 TTL_SECONDS = 600
 _lock = threading.Lock()
 _cache: dict = {"at": 0.0, "rows": None}
@@ -40,7 +41,8 @@ def _download() -> list[dict]:
                          "daynight": row["daynight"]})
         except (KeyError, ValueError):
             continue
-    return rows
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).strftime("%Y-%m-%dT%H:%MZ")
+    return [f for f in rows if f["time"] >= cutoff]
 
 
 def fires(bbox: tuple[float, float, float, float] | None = None, limit: int | None = None) -> dict:

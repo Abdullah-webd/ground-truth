@@ -1,6 +1,6 @@
 # Ground Truth: 30-second trailer plan
 
-Status: plan for review (2026-11-14). Nothing generated or recorded yet.
+Status: plan for review (updated 2026-11-15 to match the pitch deck's "real trends, not noise" story). Nothing generated or recorded yet.
 
 ## The rules we must meet (NASA Space Apps project submission guide)
 - No longer than 30 seconds.
@@ -25,7 +25,7 @@ A movie trailer, not a demo. It opens like a disaster film (the planet is changi
 |---|---|---|---|---|
 | 0:00–0:03 | Earth at night from orbit, slow push toward West Africa, city lights | "Every day, satellites watch our planet change." | | Higgsfield H1 |
 | 0:03–0:06 | Hard 0.7 s cuts: cracked riverbed, flooded street, wildfire ridge, forest turning into houses | "Hotter. Drier. Greener. Gone." | each word slams in | Higgsfield H2–H5 |
-| 0:06–0:09 | A NASA record line wiggling up and down like noise, then freezing | "But most of it is noise." | WHICH CHANGES ARE **REAL?** (highlighter draws under REAL) | our title card T1 |
+| 0:06–0:09 | Abuja's real rainfall bars (NASA GPM, 2001–2024) jumping up and down; 2001 and 2024 light up yellow, "−21%?" appears, then gets stamped NOT PROVEN | "But one bad year isn't a trend." | WHICH CHANGES ARE **REAL?** (highlighter draws under REAL) | our title card T1 (same chart as the pitch deck) |
 | 0:09–0:10 | Black. Silence. Hit. | | GROUND TRUTH | our title card T2 |
 | 0:10–0:13 | Landing page, the circle reveal into the dark globe | "Ask it anything." | | recording R1 |
 | 0:13–0:17 | You press Talk and ask about Lagos; the globe flies there and numbered change pins drop | (your real question, a few words audible) | "What changed around Lagos?" (caption) | recording R2 |
@@ -49,7 +49,7 @@ Voiceover total is about 40 words, which leaves room for the music to breathe (t
 
 | Clip | Do exactly this | Length |
 |---|---|---|
-| **R1: landing → globe** | Open the landing page. Wait 3 s for the intro. Scroll slowly down to "Case one: Punjab's hidden water" and let the chart draw. Scroll back to the top and click **Open the globe**. Wait 3 s on the globe. | ~25 s |
+| **R1: landing → globe** | Open the landing page. Wait 3 s for the intro. Scroll slowly down to "Case one: Lagos is losing its green" and let the chart draw. Scroll back to the top and click **Open the globe**. Wait 3 s on the globe. | ~25 s |
 | **R2: voice question** | On the globe, press **Talk**, allow the microphone, and say clearly: *"What changed around Lagos since 2018, and is it real?"* Don't touch anything while the globe flies and the numbered pins drop. Let the answer finish. | ~25 s |
 | **R3: the proof** | With Lagos open, click **See details** (or click the "Ikeja" name on the map). Slowly scroll the right panel to show "Getting hotter: Proven", then the chart, then "How sure are we?". Pause 2 s on each. | ~15 s |
 | **R4: fires** | Click **Fires now** and wait for the flames. Click **Fly to the biggest fire** and wait for the fire card ("About 12 km south of …"). | ~15 s |

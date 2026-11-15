@@ -26,3 +26,6 @@ data/cache/*
 .verify/
 .DS_Store
 public/cesium/
+
+# trailer/demo working media
+video/
